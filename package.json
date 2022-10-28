@@ -1,6 +1,6 @@
 {
     "name": "typescript-openapi-codegen",
-    "version": "0.23.0",
+    "version": "0.24.0",
     "description": "Library that generates Typescript clients based on the OpenAPI specification.",
     "author": "Ferdi Koomen",
     "homepage": "https://github.com/essquare/typescript-openapi-codegen",
@@ -27,8 +27,8 @@
     ],
     "maintainers": [
         {
-            "name": "Ferdi Koomen",
-            "email": "info@madebyferdi.com"
+            "name": "Everyone @ essquare GmbH",
+            "email": "everyone@essquare.de"
         }
     ],
     "main": "dist/index.js",
