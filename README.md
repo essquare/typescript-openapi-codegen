@@ -1,4 +1,4 @@
-# OpenAPI Typescript Codegen
+# Typescript OpenAPI Codegen - Fork of [OpenAPI Typescript Codegen](https://github.com/ferdikoomen/openapi-typescript-codegen)
 
 [![NPM][npm-image]][npm-url]
 [![License][license-image]][license-url]
@@ -25,7 +25,7 @@
 ## Install
 
 ```
-npm install openapi-typescript-codegen --save-dev
+npm install typescript-openapi-codegen --save-dev
 ```
 
 ## Usage
@@ -79,17 +79,17 @@ Support
 - [Angular support](docs/angular-support.md)
 - [Node-Fetch support](docs/node-fetch-support.md)
 
-[npm-url]: https://npmjs.org/package/openapi-typescript-codegen
-[npm-image]: https://img.shields.io/npm/v/openapi-typescript-codegen.svg
+[npm-url]: https://npmjs.org/package/typescript-openapi-codegen
+[npm-image]: https://img.shields.io/npm/v/typescript-openapi-codegen.svg
 [license-url]: LICENSE
-[license-image]: http://img.shields.io/npm/l/openapi-typescript-codegen.svg
-[coverage-url]: https://codecov.io/gh/ferdikoomen/openapi-typescript-codegen
-[coverage-image]: https://img.shields.io/codecov/c/github/ferdikoomen/openapi-typescript-codegen.svg
-[quality-url]: https://lgtm.com/projects/g/ferdikoomen/openapi-typescript-codegen
-[quality-image]: https://img.shields.io/lgtm/grade/javascript/g/ferdikoomen/openapi-typescript-codegen.svg
-[climate-url]: https://codeclimate.com/github/ferdikoomen/openapi-typescript-codegen
-[climate-image]: https://img.shields.io/codeclimate/maintainability/ferdikoomen/openapi-typescript-codegen.svg
-[downloads-url]: http://npm-stat.com/charts.html?package=openapi-typescript-codegen
-[downloads-image]: http://img.shields.io/npm/dm/openapi-typescript-codegen.svg
-[build-url]: https://circleci.com/gh/ferdikoomen/openapi-typescript-codegen/tree/master
-[build-image]: https://circleci.com/gh/ferdikoomen/openapi-typescript-codegen/tree/master.svg?style=svg
+[license-image]: http://img.shields.io/npm/l/typescript-openapi-codegen.svg
+[coverage-url]: https://codecov.io/gh/essqure/typescript-openapi-codegen
+[coverage-image]: https://img.shields.io/codecov/c/github/essqure/typescript-openapi-codegen.svg
+[quality-url]: https://lgtm.com/projects/g/essqure/typescript-openapi-codegen
+[quality-image]: https://img.shields.io/lgtm/grade/javascript/g/essqure/typescript-openapi-codegen.svg
+[climate-url]: https://codeclimate.com/github/essqure/typescript-openapi-codegen
+[climate-image]: https://img.shields.io/codeclimate/maintainability/essqure/typescript-openapi-codegen.svg
+[downloads-url]: http://npm-stat.com/charts.html?package=typescript-openapi-codegen
+[downloads-image]: http://img.shields.io/npm/dm/typescript-openapi-codegen.svg
+[build-url]: https://circleci.com/gh/essqure/typescript-openapi-codegen/tree/master
+[build-image]: https://circleci.com/gh/essqure/typescript-openapi-codegen/tree/master.svg?style=svg

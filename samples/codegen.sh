@@ -17,5 +17,5 @@ java -jar ./swagger-codegen-cli-v2.jar generate -i spec/v2.json -l typescript-no
 java -jar ./swagger-codegen-cli-v3.jar generate -i spec/v3.json -l typescript-angular -o generated/v3/typescript-angular/
 java -jar ./swagger-codegen-cli-v3.jar generate -i spec/v3.json -l typescript-fetch -o generated/v3/typescript-fetch/
 
-node ../bin/index.js --input spec/v2.json --output generated/v2/openapi-typescript-codegen/
-node ../bin/index.js --input spec/v3.json --output generated/v3/openapi-typescript-codegen/
+node ../bin/index.js --input spec/v2.json --output generated/v2/typescript-openapi-codegen/
+node ../bin/index.js --input spec/v3.json --output generated/v3/typescript-openapi-codegen/
