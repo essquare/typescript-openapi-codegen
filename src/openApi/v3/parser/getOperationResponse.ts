@@ -12,42 +12,27 @@ export const getOperationResponse = (
     openApi: OpenApi,
     response: OpenApiResponse,
     responseCode: number
-): OperationResponse => {
-    const operationResponse: OperationResponse = {
-        in: 'response',
-        name: '',
-        code: responseCode,
-        description: response.description || null,
-        export: 'generic',
-        type: 'any',
-        base: 'any',
-        template: null,
-        link: null,
-        isDefinition: false,
-        isReadOnly: false,
-        isRequired: false,
-        isNullable: false,
-        imports: [],
-        enum: [],
-        enums: [],
-        properties: [],
-    };
+): OperationResponse[] => {
+    const responses: OperationResponse[] = [];
 
     if (response.content) {
-        const content = getContent(openApi, response.content);
-        if (content) {
-            if (content.schema.$ref?.startsWith('#/components/responses/')) {
-                content.schema = getRef<OpenApiSchema>(openApi, content.schema);
-            }
-            if (content.schema.$ref) {
-                const model = getType(content.schema.$ref);
-                operationResponse.export = 'reference';
-                operationResponse.type = model.type;
-                operationResponse.base = model.base;
-                operationResponse.template = model.template;
-                operationResponse.imports.push(...model.imports);
-                return operationResponse;
-            } else {
+        const contents = getContent(openApi, response.content);
+        if (contents && contents.length > 0) {
+            contents.forEach(content => {
+                const operationResponse = getBaseResponse(response, responseCode);
+                if (content.schema.$ref?.startsWith('#/components/responses/')) {
+                    content.schema = getRef<OpenApiSchema>(openApi, content.schema);
+                }
+                if (content.schema.$ref) {
+                    const model = getType(content.schema.$ref);
+                    operationResponse.export = 'reference';
+                    operationResponse.type = model.type;
+                    operationResponse.base = model.base;
+                    operationResponse.template = model.template;
+                    operationResponse.imports.push(...model.imports);
+                    responses.push(operationResponse);
+                    return;
+                }
                 const model = getModel(openApi, content.schema);
                 operationResponse.export = model.export;
                 operationResponse.type = model.type;
@@ -75,8 +60,11 @@ export const getOperationResponse = (
                 operationResponse.enum.push(...model.enum);
                 operationResponse.enums.push(...model.enums);
                 operationResponse.properties.push(...model.properties);
-                return operationResponse;
-            }
+                responses.push(operationResponse);
+            });
+        }
+        if (responses.length) {
+            return responses;
         }
     }
 
@@ -85,14 +73,40 @@ export const getOperationResponse = (
     if (response.headers) {
         for (const name in response.headers) {
             if (response.headers.hasOwnProperty(name)) {
+                const operationResponse = getBaseResponse(response, responseCode);
                 operationResponse.in = 'header';
                 operationResponse.name = name;
                 operationResponse.type = 'string';
                 operationResponse.base = 'string';
-                return operationResponse;
+                responses.push(operationResponse);
             }
+        }
+        if (responses.length) {
+            return responses; // TODO: is it possible to return headers and results
         }
     }
 
-    return operationResponse;
+    return [getBaseResponse(response, responseCode)];
+};
+
+const getBaseResponse = (response: OpenApiResponse, responseCode: number): OperationResponse => {
+    return {
+        in: 'response',
+        name: '',
+        code: responseCode,
+        description: response.description || null,
+        export: 'generic',
+        type: 'any',
+        base: 'any',
+        template: null,
+        link: null,
+        isDefinition: false,
+        isReadOnly: false,
+        isRequired: false,
+        isNullable: false,
+        imports: [],
+        enum: [],
+        enums: [],
+        properties: [],
+    };
 };

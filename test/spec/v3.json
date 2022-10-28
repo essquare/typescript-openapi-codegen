@@ -1429,6 +1429,38 @@
                 }
             }
         },
+        "/api/v{api-version}/multiResponses": {
+            "post": {
+                "tags": [
+                    "MultiResponses"
+                ],
+                "operationId": "CallWithMultiResponsesResult",
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/octet-stream": {
+                              "schema": {
+                                "type": "string",
+                                "format": "binary"
+                              }
+                            },
+                            "application/json": {
+                              "schema": {
+                                "$ref": "#/components/schemas/ModelWithString"
+                              }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "400 server error"
+                    },
+                    "500": {
+                        "description": "500 server error"
+                    }
+                }
+            }
+        },
         "/api/v{api-version}/error": {
             "post": {
                 "tags": [

@@ -3751,6 +3751,7 @@ export { MultipartService } from './services/MultipartService';
 export { MultipleTags1Service } from './services/MultipleTags1Service';
 export { MultipleTags2Service } from './services/MultipleTags2Service';
 export { MultipleTags3Service } from './services/MultipleTags3Service';
+export { MultiResponsesService } from './services/MultiResponsesService';
 export { NoContentService } from './services/NoContentService';
 export { ParametersService } from './services/ParametersService';
 export { RequestBodyService } from './services/RequestBodyService';
@@ -6603,6 +6604,38 @@ export class HeaderService {
             method: 'POST',
             url: '/api/v{api-version}/header',
             responseHeader: 'operation-location',
+            errors: {
+                400: \`400 server error\`,
+                500: \`500 server error\`,
+            },
+        });
+    }
+
+}
+"
+`;
+
+exports[`v3 should generate: ./test/generated/v3/services/MultiResponsesService.ts 1`] = `
+"/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+import type { ModelWithString } from '../models/ModelWithString';
+
+import type { CancelablePromise } from '../core/CancelablePromise';
+import { OpenAPI } from '../core/OpenAPI';
+import { request as __request } from '../core/request';
+
+export class MultiResponsesService {
+
+    /**
+     * @returns binary Successful response
+     * @returns ModelWithString Successful response
+     * @throws ApiError
+     */
+    public static callWithMultiResponsesResult(): CancelablePromise<Blob | ModelWithString> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v{api-version}/multiResponses',
             errors: {
                 400: \`400 server error\`,
                 500: \`500 server error\`,

@@ -9,38 +9,16 @@ export interface Content {
     schema: OpenApiSchema;
 }
 
-const BASIC_MEDIA_TYPES = [
-    'application/json-patch+json',
-    'application/json',
-    'application/x-www-form-urlencoded',
-    'text/json',
-    'text/plain',
-    'multipart/form-data',
-    'multipart/mixed',
-    'multipart/related',
-    'multipart/batch',
-];
+export const getContent = (openApi: OpenApi, content: Dictionary<OpenApiMediaType>): Content[] | null => {
+    const contents: Content[] = [];
+    Object.keys(content)
+        .filter(mediaType => isDefined(content[mediaType]?.schema))
+        .forEach(mediaType => {
+            contents.push({
+                mediaType: mediaType,
+                schema: content[mediaType].schema as OpenApiSchema,
+            });
+        });
 
-export const getContent = (openApi: OpenApi, content: Dictionary<OpenApiMediaType>): Content | null => {
-    const basicMediaTypeWithSchema = Object.keys(content)
-        .filter(mediaType => {
-            const cleanMediaType = mediaType.split(';')[0].trim();
-            return BASIC_MEDIA_TYPES.includes(cleanMediaType);
-        })
-        .find(mediaType => isDefined(content[mediaType]?.schema));
-    if (basicMediaTypeWithSchema) {
-        return {
-            mediaType: basicMediaTypeWithSchema,
-            schema: content[basicMediaTypeWithSchema].schema as OpenApiSchema,
-        };
-    }
-
-    const firstMediaTypeWithSchema = Object.keys(content).find(mediaType => isDefined(content[mediaType]?.schema));
-    if (firstMediaTypeWithSchema) {
-        return {
-            mediaType: firstMediaTypeWithSchema,
-            schema: content[firstMediaTypeWithSchema].schema as OpenApiSchema,
-        };
-    }
-    return null;
+    return contents.length ? contents : null;
 };

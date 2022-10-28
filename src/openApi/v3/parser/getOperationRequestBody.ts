@@ -30,8 +30,10 @@ export const getOperationRequestBody = (openApi: OpenApi, body: OpenApiRequestBo
     };
 
     if (body.content) {
-        const content = getContent(openApi, body.content);
-        if (content) {
+        const contents = getContent(openApi, body.content);
+        if (contents && contents.length > 0) {
+            // TODO: here try later to use multiple requests
+            const content = contents.shift()!;
             requestBody.mediaType = content.mediaType;
             switch (requestBody.mediaType) {
                 case 'application/x-www-form-urlencoded':
