@@ -3,19 +3,56 @@ const sendRequest = async <T>(
 	options: ApiRequestOptions,
 	url: string,
 	body: any,
-	formData: FormData | undefined,
+	formData: any,
 	headers: Record<string, string>,
 	onCancel: OnCancel
 ): Promise<AxiosResponse<T>> => {
 	const source = axios.CancelToken.source();
+    let realBody;
+    if (body) {
+        realBody = body;
+    } else if (isFormData(formData)) {
+        realBody = formData;
+    }
+    if (isBlob(formData)) {
+        realBody = await formData.arrayBuffer();
+    }
+
+    const transformers: AxiosResponseTransformer[] = [];
+
+    transformers.push(function binaryData(data, headers) {
+        const contentType = (headers.getContentType() as string) || '';
+        const hasJSONContentType = contentType.indexOf('application/json') > -1;
+        const hasTextContentType = contentType.indexOf('text/plain') > -1;
+        if (!hasJSONContentType && !hasTextContentType) {
+            return new Blob([data]);
+        }
+        const textDecoder = new TextDecoder('utf-8');
+        const textData = textDecoder.decode(data);
+        if (this !== undefined) {
+            if (hasJSONContentType) {
+                this.responseType = "json"
+            } else if (hasTextContentType && this !== undefined) {
+                this.responseType = "text"
+            }
+        }
+        return textData;
+    });
+    if (axios.defaults.transformResponse instanceof Array<AxiosResponseTransformer>) {
+        transformers.push(...axios.defaults.transformResponse);
+    } else if (axios.defaults.transformResponse !== undefined) {
+        transformers.push(axios.defaults.transformResponse);
+    }
 
 	const requestConfig: AxiosRequestConfig = {
 		url,
 		headers,
-		data: body ?? formData,
+		data: realBody,
 		method: options.method,
 		withCredentials: config.WITH_CREDENTIALS,
 		cancelToken: source.token,
+        transformResponse: transformers,
+        responseType: 'arraybuffer',
 	};
 
 	onCancel(() => source.cancel('The user aborted a request.'));

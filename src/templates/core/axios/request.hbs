@@ -1,8 +1,8 @@
 {{>header}}
 
 import axios from 'axios';
-import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
-import FormData from 'form-data';
+import type { AxiosError, AxiosRequestConfig, AxiosResponse, AxiosResponseTransformer } from 'axios';
+import { ObjectId } from 'bson';
 
 import { ApiError } from './ApiError';
 import type { ApiRequestOptions } from './ApiRequestOptions';
@@ -10,6 +10,18 @@ import type { ApiResult } from './ApiResult';
 import { CancelablePromise } from './CancelablePromise';
 import type { OnCancel } from './CancelablePromise';
 import type { OpenAPIConfig } from './OpenAPI';
+
+{{>functions/isBrowserEnv}}
+
+
+{{>functions/prepareFormData}}
+
+
+{{>functions/typeOfTest}}
+
+
+{{>functions/isFunction}}
+
 
 {{>functions/isDefined}}
 
@@ -73,7 +85,7 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): C
 	return new CancelablePromise(async (resolve, reject, onCancel) => {
 		try {
 			const url = getUrl(config, options);
-			const formData = getFormData(options);
+			const formData = prepareFormData(getFormData(options));
 			const body = getRequestBody(options);
 			const headers = await getHeaders(config, options, formData);
 

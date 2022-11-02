@@ -31,12 +31,16 @@ import functionGetFormData from '../templates/core/functions/getFormData.hbs';
 import functionGetQueryString from '../templates/core/functions/getQueryString.hbs';
 import functionGetUrl from '../templates/core/functions/getUrl.hbs';
 import functionIsBlob from '../templates/core/functions/isBlob.hbs';
+import functionIsBrowserEnv from '../templates/core/functions/isBrowserEnv.hbs';
 import functionIsDefined from '../templates/core/functions/isDefined.hbs';
 import functionIsFormData from '../templates/core/functions/isFormData.hbs';
+import functionIsFunction from '../templates/core/functions/isFunction.hbs';
 import functionIsString from '../templates/core/functions/isString.hbs';
 import functionIsStringWithValue from '../templates/core/functions/isStringWithValue.hbs';
 import functionIsSuccess from '../templates/core/functions/isSuccess.hbs';
+import functionPrepareFormData from '../templates/core/functions/prepareFormData.hbs';
 import functionResolve from '../templates/core/functions/resolve.hbs';
+import functionTypeOfTest from '../templates/core/functions/typeOfTest.hbs';
 import templateCoreHttpRequest from '../templates/core/HttpRequest.hbs';
 import nodeGetHeaders from '../templates/core/node/getHeaders.hbs';
 import nodeGetRequestBody from '../templates/core/node/getRequestBody.hbs';
@@ -172,13 +176,17 @@ export const registerHandlebarTemplates = (root: {
     Handlebars.registerPartial('functions/getQueryString', Handlebars.template(functionGetQueryString));
     Handlebars.registerPartial('functions/getUrl', Handlebars.template(functionGetUrl));
     Handlebars.registerPartial('functions/isBlob', Handlebars.template(functionIsBlob));
+    Handlebars.registerPartial('functions/isBrowserEnv', Handlebars.template(functionIsBrowserEnv));
     Handlebars.registerPartial('functions/isDefined', Handlebars.template(functionIsDefined));
     Handlebars.registerPartial('functions/isFormData', Handlebars.template(functionIsFormData));
+    Handlebars.registerPartial('functions/isFunction', Handlebars.template(functionIsFunction));
     Handlebars.registerPartial('functions/isString', Handlebars.template(functionIsString));
     Handlebars.registerPartial('functions/isStringWithValue', Handlebars.template(functionIsStringWithValue));
     Handlebars.registerPartial('functions/isSuccess', Handlebars.template(functionIsSuccess));
     Handlebars.registerPartial('functions/base64', Handlebars.template(functionBase64));
+    Handlebars.registerPartial('functions/prepareFormData', Handlebars.template(functionPrepareFormData));
     Handlebars.registerPartial('functions/resolve', Handlebars.template(functionResolve));
+    Handlebars.registerPartial('functions/typeOfTest', Handlebars.template(functionTypeOfTest));
 
     // Specific files for the fetch client implementation
     Handlebars.registerPartial('fetch/getHeaders', Handlebars.template(fetchGetHeaders));

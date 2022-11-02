@@ -1,14 +1,25 @@
-const getFormData = (options: ApiRequestOptions): FormData | undefined => {
+const getFormData = (options: ApiRequestOptions) => {
 	if (options.formData) {
-		const formData = new FormData();
-
-		const process = (key: string, value: any) => {
-			if (isString(value) || isBlob(value)) {
-				formData.append(key, value);
-			} else {
-				formData.append(key, JSON.stringify(value));
-			}
-		};
+        let formData: any;        
+        if (isStandardBrowserEnv) {
+            formData = new FormData();
+        } else {
+            if (typeof FormData !== undefined) {
+                formData = new FormData();
+            } else {
+                throw new Error('Please use with nodejs version >= 18!');
+            }
+        }
+  
+        const process = (key: string, value: any) => {
+            if (isString(value)) {
+                formData.append(key, value);
+            } else if (isBlob(value)) {
+              formData.append(key, value, value.type);
+            } else {
+                formData.append(key, JSON.stringify(value));
+            }
+        };
 
 		Object.entries(options.formData)
 			.filter(([_, value]) => isDefined(value))

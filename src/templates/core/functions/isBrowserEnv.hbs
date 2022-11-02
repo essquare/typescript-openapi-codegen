@@ -1,0 +1,13 @@
+const isStandardBrowserEnv = (() => {
+  let product;
+  if (
+    typeof navigator !== 'undefined' &&
+    ((product = navigator.product) === 'ReactNative' ||
+      product === 'NativeScript' ||
+      product === 'NS')
+  ) {
+    return false;
+  }
+
+  return typeof window !== 'undefined' && typeof document !== 'undefined';
+})();

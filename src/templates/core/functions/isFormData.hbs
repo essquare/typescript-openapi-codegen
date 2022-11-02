@@ -1,3 +1,9 @@
-const isFormData = (value: any): value is FormData => {
-	return value instanceof FormData;
+const isFormData = (thing: any) => {
+    const pattern = '[object FormData]';
+    return (
+        thing &&
+        ((typeof FormData === 'function' && thing instanceof FormData) ||
+        toString.call(thing) === pattern ||
+        (isFunction(thing.toString) && thing.toString() === pattern))
+    );
 };

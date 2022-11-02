@@ -1,6 +1,6 @@
 {
     "name": "typescript-openapi-codegen",
-    "version": "0.24.0",
+    "version": "0.2.0",
     "description": "Library that generates Typescript clients based on the OpenAPI specification.",
     "author": "Ferdi Koomen",
     "homepage": "https://github.com/essquare/typescript-openapi-codegen",
@@ -95,7 +95,8 @@
         "@typescript-eslint/eslint-plugin": "5.36.2",
         "@typescript-eslint/parser": "5.37.0",
         "abort-controller": "3.0.0",
-        "axios": "0.27.2",
+        "axios": "^1.1.3",
+        "bson": "^4.7.0",
         "codecov": "3.8.3",
         "cross-spawn": "7.0.3",
         "eslint": "8.23.1",

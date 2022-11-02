@@ -240,6 +240,24 @@ import { CancelablePromise } from './CancelablePromise';
 import type { OnCancel } from './CancelablePromise';
 import type { OpenAPIConfig } from './OpenAPI';
 
+const isStandardBrowserEnv = (() => {
+  let product;
+  if (
+    typeof navigator !== 'undefined' &&
+    ((product = navigator.product) === 'ReactNative' ||
+      product === 'NativeScript' ||
+      product === 'NS')
+  ) {
+    return false;
+  }
+
+  return typeof window !== 'undefined' && typeof document !== 'undefined';
+})();
+
+const typeOfTest = (type: any) => (thing: any) => typeof thing === type;
+
+const isFunction = typeOfTest('function');
+
 const isDefined = <T>(value: T | null | undefined): value is Exclude<T, null | undefined> => {
     return value !== undefined && value !== null;
 };
@@ -265,8 +283,14 @@ const isBlob = (value: any): value is Blob => {
     );
 };
 
-const isFormData = (value: any): value is FormData => {
-    return value instanceof FormData;
+const isFormData = (thing: any) => {
+    const pattern = '[object FormData]';
+    return (
+        thing &&
+        ((typeof FormData === 'function' && thing instanceof FormData) ||
+        toString.call(thing) === pattern ||
+        (isFunction(thing.toString) && thing.toString() === pattern))
+    );
 };
 
 const base64 = (str: string): string => {
@@ -331,13 +355,24 @@ const getUrl = (config: OpenAPIConfig, options: ApiRequestOptions): string => {
     return url;
 };
 
-const getFormData = (options: ApiRequestOptions): FormData | undefined => {
+const getFormData = (options: ApiRequestOptions) => {
     if (options.formData) {
-        const formData = new FormData();
-
+        let formData: any;        
+        if (isStandardBrowserEnv) {
+            formData = new FormData();
+        } else {
+            if (typeof FormData !== undefined) {
+                formData = new FormData();
+            } else {
+                throw new Error('Please use with nodejs version >= 18!');
+            }
+        }
+  
         const process = (key: string, value: any) => {
-            if (isString(value) || isBlob(value)) {
+            if (isString(value)) {
                 formData.append(key, value);
+            } else if (isBlob(value)) {
+              formData.append(key, value, value.type);
             } else {
                 formData.append(key, JSON.stringify(value));
             }
@@ -3299,6 +3334,24 @@ import { CancelablePromise } from './CancelablePromise';
 import type { OnCancel } from './CancelablePromise';
 import type { OpenAPIConfig } from './OpenAPI';
 
+const isStandardBrowserEnv = (() => {
+  let product;
+  if (
+    typeof navigator !== 'undefined' &&
+    ((product = navigator.product) === 'ReactNative' ||
+      product === 'NativeScript' ||
+      product === 'NS')
+  ) {
+    return false;
+  }
+
+  return typeof window !== 'undefined' && typeof document !== 'undefined';
+})();
+
+const typeOfTest = (type: any) => (thing: any) => typeof thing === type;
+
+const isFunction = typeOfTest('function');
+
 const isDefined = <T>(value: T | null | undefined): value is Exclude<T, null | undefined> => {
     return value !== undefined && value !== null;
 };
@@ -3324,8 +3377,14 @@ const isBlob = (value: any): value is Blob => {
     );
 };
 
-const isFormData = (value: any): value is FormData => {
-    return value instanceof FormData;
+const isFormData = (thing: any) => {
+    const pattern = '[object FormData]';
+    return (
+        thing &&
+        ((typeof FormData === 'function' && thing instanceof FormData) ||
+        toString.call(thing) === pattern ||
+        (isFunction(thing.toString) && thing.toString() === pattern))
+    );
 };
 
 const base64 = (str: string): string => {
@@ -3390,13 +3449,24 @@ const getUrl = (config: OpenAPIConfig, options: ApiRequestOptions): string => {
     return url;
 };
 
-const getFormData = (options: ApiRequestOptions): FormData | undefined => {
+const getFormData = (options: ApiRequestOptions) => {
     if (options.formData) {
-        const formData = new FormData();
-
+        let formData: any;        
+        if (isStandardBrowserEnv) {
+            formData = new FormData();
+        } else {
+            if (typeof FormData !== undefined) {
+                formData = new FormData();
+            } else {
+                throw new Error('Please use with nodejs version >= 18!');
+            }
+        }
+  
         const process = (key: string, value: any) => {
-            if (isString(value) || isBlob(value)) {
+            if (isString(value)) {
                 formData.append(key, value);
+            } else if (isBlob(value)) {
+              formData.append(key, value, value.type);
             } else {
                 formData.append(key, JSON.stringify(value));
             }
