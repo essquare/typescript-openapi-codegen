@@ -40,13 +40,13 @@ $ openapi --help
 **NPX**
 
 ```
-npx typescript-openapi-codegen --input ./spec.json --output ./generated
+npx @essquare/typescript-openapi-codegen --input ./spec.json --output ./generated
 ```
 
 **Node.js**
 
 ```javascript
-const OpenAPI = require('typescript-openapi-codegen');
+const OpenAPI = require('@essquare/typescript-openapi-codegen');
 
 OpenAPI.generate({
     input: './spec.json',

@@ -1,5 +1,5 @@
 {
-    "name": "typescript-openapi-codegen",
+    "name": "@essquare/typescript-openapi-codegen",
     "version": "0.2.0",
     "description": "Library that generates Typescript clients based on the OpenAPI specification.",
     "author": "Ferdi Koomen",

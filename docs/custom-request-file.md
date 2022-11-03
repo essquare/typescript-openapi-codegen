@@ -54,7 +54,7 @@ To use this request file in your generated code you can execute the
 following command:
 
 ```
-npx typescript-openapi-codegen --input ./spec.json --output ./generated --request ./request.ts
+npx @essquare/typescript-openapi-codegen --input ./spec.json --output ./generated --request ./request.ts
 ```
 
 The `--request` parameter will tell the generator to not generate the default

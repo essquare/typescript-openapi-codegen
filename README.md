@@ -25,7 +25,7 @@
 ## Install
 
 ```
-npm install typescript-openapi-codegen --save-dev
+npm i @essquare/typescript-openapi-codegen --save-dev
 ```
 
 ## Usage
@@ -79,17 +79,17 @@ Support
 - [Angular support](docs/angular-support.md)
 - [Node-Fetch support](docs/node-fetch-support.md)
 
-[npm-url]: https://npmjs.org/package/typescript-openapi-codegen
-[npm-image]: https://img.shields.io/npm/v/typescript-openapi-codegen.svg
+[npm-url]: https://www.npmjs.com/package/@essquare/typescript-openapi-codegen
+[npm-image]: https://img.shields.io/npm/v/@essquare/typescript-openapi-codegen.svg
 [license-url]: LICENSE
-[license-image]: http://img.shields.io/npm/l/typescript-openapi-codegen.svg
-[coverage-url]: https://codecov.io/gh/essqure/typescript-openapi-codegen
-[coverage-image]: https://img.shields.io/codecov/c/github/essqure/typescript-openapi-codegen.svg
-[quality-url]: https://lgtm.com/projects/g/essqure/typescript-openapi-codegen
+[license-image]: https://img.shields.io/npm/l/@essquare/typescript-openapi-codegen.svg
+[coverage-url]: https://codecov.io/gh/essquare/typescript-openapi-codegen
+[coverage-image]: https://img.shields.io/codecov/c/github/essquare/typescript-openapi-codegen.svg
+[quality-url]: https://lgtm.com/projects/g/essquare/typescript-openapi-codegen
 [quality-image]: https://img.shields.io/lgtm/grade/javascript/g/essqure/typescript-openapi-codegen.svg
 [climate-url]: https://codeclimate.com/github/essqure/typescript-openapi-codegen
 [climate-image]: https://img.shields.io/codeclimate/maintainability/essqure/typescript-openapi-codegen.svg
-[downloads-url]: http://npm-stat.com/charts.html?package=typescript-openapi-codegen
-[downloads-image]: http://img.shields.io/npm/dm/typescript-openapi-codegen.svg
-[build-url]: https://circleci.com/gh/essqure/typescript-openapi-codegen/tree/master
-[build-image]: https://circleci.com/gh/essqure/typescript-openapi-codegen/tree/master.svg?style=svg
+[downloads-url]: http://npm-stat.com/charts.html?package=@essquare/typescript-codegen-openapi
+[downloads-image]: http://img.shields.io/npm/dm/@essquare/typescript-openapi-codegen.svg
+[build-url]: https://circleci.com/gh/essquare/typescript-openapi-codegen/tree/master
+[build-image]: https://circleci.com/gh/essquare/typescript-openapi-codegen/tree/master.svg?style=svg
