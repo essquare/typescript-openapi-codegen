@@ -13,7 +13,7 @@ describe('client.axios', () => {
 
     afterAll(async () => {
         await server.stop();
-    });
+    }, 30000);
 
     it('requests token', async () => {
         const { ApiClient } = require('./generated/client/axios/index.js');

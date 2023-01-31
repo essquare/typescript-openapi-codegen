@@ -17,7 +17,7 @@ const getFormData = (options: ApiRequestOptions) => {
             } else if (isBlob(value)) {
               formData.append(key, value, value.type);
             } else {
-                formData.append(key, JSON.stringify(value));
+                formData.append(key, new Blob([JSON.stringify(value)], {"type":"application/json"}));
             }
         };
 
