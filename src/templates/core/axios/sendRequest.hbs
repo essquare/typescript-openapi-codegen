@@ -21,7 +21,7 @@ const sendRequest = async <T>(
     const transformers: AxiosResponseTransformer[] = [];
 
     transformers.push(function binaryData(data, headers) {
-        const contentType = (headers.getContentType() as string) || '';
+        const contentType = headers.getContentType()?.toString() || '';
         const hasJSONContentType = contentType.indexOf('application/json') > -1;
         const hasTextContentType = contentType.indexOf('text/plain') > -1;
         if (!hasJSONContentType && !hasTextContentType) {
