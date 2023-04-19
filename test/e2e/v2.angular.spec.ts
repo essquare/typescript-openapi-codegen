@@ -20,7 +20,7 @@ describe('v2.angular', () => {
     afterAll(async () => {
         await browser.stop();
         await server.stop();
-    });
+    }, 30000);
 
     it('requests token', async () => {
         await browser.exposeFunction('tokenRequest', jest.fn().mockResolvedValue('MY_TOKEN'));
@@ -31,7 +31,7 @@ describe('v2.angular', () => {
                 SimpleService.getCallWithoutParametersAndResponse().subscribe(resolve);
             });
         });
-        expect(result.headers.authorization).toBe('Bearer MY_TOKEN');
+        expect(result.body.headers.authorization).toBe('Bearer MY_TOKEN');
     });
 
     it('supports complex params', async () => {
@@ -47,6 +47,7 @@ describe('v2.angular', () => {
                 }).subscribe(resolve);
             });
         });
-        expect(result).toBeDefined();
+        expect(result.headers['x-powered-by']).toBe('Express');
+        expect(result.body).toBeDefined();
     });
 });

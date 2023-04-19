@@ -10,12 +10,14 @@ import { BaseHttpRequest } from './BaseHttpRequest';
 import type { OpenAPIConfig } from './OpenAPI';
 import { OpenAPI } from './OpenAPI';
 import { request as __request } from './request';
+import type { ApiResult } from './ApiResult';
 {{else}}
 import type { ApiRequestOptions } from './ApiRequestOptions';
 import { BaseHttpRequest } from './BaseHttpRequest';
 import type { CancelablePromise } from './CancelablePromise';
 import type { OpenAPIConfig } from './OpenAPI';
 import { request as __request } from './request';
+import type { ApiResult } from './ApiResult';
 {{/equals}}
 
 {{#equals @root.httpClient 'angular'}}
@@ -41,21 +43,21 @@ export class {{httpRequest}} extends BaseHttpRequest {
 	/**
 	 * Request method
 	 * @param options The request options from the service
-	 * @returns Observable<T>
+	 * @returns Observable<ApiResult<T>>
 	 * @throws ApiError
 	 */
-	public override request<T>(options: ApiRequestOptions): Observable<T> {
+	public override request<T>(options: ApiRequestOptions): Observable<ApiResult<T>> {
 		return __request(this.config, this.http, options);
 	}
 	{{else}}
 	/**
 	 * Request method
 	 * @param options The request options from the service
-	 * @returns CancelablePromise<T>
+	 * @returns CancelablePromise<ApiResult<T>>
 	 * @throws ApiError
 	 */
-	public override request<T>(options: ApiRequestOptions): CancelablePromise<T> {
-		return __request(this.config, options);
+	public override request<T>(options: ApiRequestOptions): CancelablePromise<ApiResult<T>> {
+		return __request<T>(this.config, options);
 	}
 	{{/equals}}
 }

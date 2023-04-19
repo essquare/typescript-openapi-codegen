@@ -13,7 +13,7 @@ describe('v3.axios', () => {
 
     afterAll(async () => {
         await server.stop();
-    });
+    }, 30000);
 
     it('requests token', async () => {
         const { OpenAPI, SimpleService } = require('./generated/v3/axios/index.js');
@@ -23,7 +23,7 @@ describe('v3.axios', () => {
         OpenAPI.PASSWORD = undefined;
         const result = await SimpleService.getCallWithoutParametersAndResponse();
         expect(tokenRequest.mock.calls.length).toBe(1);
-        expect(result.headers.authorization).toBe('Bearer MY_TOKEN');
+        expect(result.body.headers.authorization).toBe('Bearer MY_TOKEN');
     });
 
     it('uses credentials', async () => {
@@ -32,7 +32,7 @@ describe('v3.axios', () => {
         OpenAPI.USERNAME = 'username';
         OpenAPI.PASSWORD = 'password';
         const result = await SimpleService.getCallWithoutParametersAndResponse();
-        expect(result.headers.authorization).toBe('Basic dXNlcm5hbWU6cGFzc3dvcmQ=');
+        expect(result.body.headers.authorization).toBe('Basic dXNlcm5hbWU6cGFzc3dvcmQ=');
     });
 
     it('supports complex params', async () => {
@@ -44,7 +44,8 @@ describe('v3.axios', () => {
                 },
             },
         });
-        expect(result).toBeDefined();
+        expect(result.headers['x-powered-by']).toBe('Express');
+        expect(result.body).toBeDefined();
     });
 
     it('supports form data', async () => {
@@ -59,7 +60,7 @@ describe('v3.axios', () => {
                 prop: 'valueBody',
             }
         );
-        expect(result).toBeDefined();
+        expect(result.body).toBeDefined();
     });
 
     it('can abort the request', async () => {
@@ -146,6 +147,8 @@ describe('v3.axios', () => {
             size: 1,
             sort: ['location'],
         })) as Promise<any>;
-        expect((result as any).query).toStrictEqual({ parameter: { page: '0', size: '1', sort: 'location' } });
+        expect((result as any).body.query).toStrictEqual({
+            parameter: { page: '0', size: '1', sort: 'location' },
+        });
     });
 });

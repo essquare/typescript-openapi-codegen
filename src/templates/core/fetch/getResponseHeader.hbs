@@ -1,9 +1,9 @@
-const getResponseHeader = (response: Response, responseHeader?: string): string | undefined => {
-	if (responseHeader) {
-		const content = response.headers.get(responseHeader);
-		if (isString(content)) {
-			return content;
-		}
-	}
-	return undefined;
+const getResponseHeader = (response: Response) => {
+	const headerMap:Record<string, string> = {};
+	response.headers.forEach((value, key) => {
+        if(value){
+            headerMap[key] = value;
+        }
+    })
+    return headerMap;
 };

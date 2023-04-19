@@ -19,7 +19,7 @@ describe('v3.fetch', () => {
     afterAll(async () => {
         await browser.stop();
         await server.stop();
-    });
+    }, 30000);
 
     it('requests token', async () => {
         await browser.exposeFunction('tokenRequest', jest.fn().mockResolvedValue('MY_TOKEN'));
@@ -30,7 +30,7 @@ describe('v3.fetch', () => {
             OpenAPI.PASSWORD = undefined;
             return await SimpleService.getCallWithoutParametersAndResponse();
         });
-        expect(result.headers.authorization).toBe('Bearer MY_TOKEN');
+        expect(result.body.headers.authorization).toBe('Bearer MY_TOKEN');
     });
 
     it('uses credentials', async () => {
@@ -41,7 +41,7 @@ describe('v3.fetch', () => {
             OpenAPI.PASSWORD = 'password';
             return await SimpleService.getCallWithoutParametersAndResponse();
         });
-        expect(result.headers.authorization).toBe('Basic dXNlcm5hbWU6cGFzc3dvcmQ=');
+        expect(result.body.headers.authorization).toBe('Basic dXNlcm5hbWU6cGFzc3dvcmQ=');
     });
 
     it('supports complex params', async () => {
@@ -55,7 +55,8 @@ describe('v3.fetch', () => {
                 },
             });
         });
-        expect(result).toBeDefined();
+        expect(result.headers['x-powered-by']).toBe('Express');
+        expect(result.body).toBeDefined();
     });
 
     it('support form data', async () => {
@@ -72,7 +73,7 @@ describe('v3.fetch', () => {
                 }
             );
         });
-        expect(result).toBeDefined();
+        expect(result.body).toBeDefined();
     });
 
     it('can abort the request', async () => {
@@ -168,6 +169,6 @@ describe('v3.fetch', () => {
                 sort: ['location'],
             })) as Promise<any>;
         });
-        expect(result.query).toStrictEqual({ parameter: { page: '0', size: '1', sort: 'location' } });
+        expect(result.body.query).toStrictEqual({ parameter: { page: '0', size: '1', sort: 'location' } });
     });
 });

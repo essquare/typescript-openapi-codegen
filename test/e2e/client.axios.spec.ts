@@ -25,7 +25,7 @@ describe('client.axios', () => {
         });
         const result = await client.simple.getCallWithoutParametersAndResponse();
         expect(tokenRequest.mock.calls.length).toBe(1);
-        expect(result.headers.authorization).toBe('Bearer MY_TOKEN');
+        expect(result.body.headers.authorization).toBe('Bearer MY_TOKEN');
     });
 
     it('uses credentials', async () => {
@@ -36,7 +36,7 @@ describe('client.axios', () => {
             PASSWORD: 'password',
         });
         const result = await client.simple.getCallWithoutParametersAndResponse();
-        expect(result.headers.authorization).toBe('Basic dXNlcm5hbWU6cGFzc3dvcmQ=');
+        expect(result.body.headers.authorization).toBe('Basic dXNlcm5hbWU6cGFzc3dvcmQ=');
     });
 
     it('supports complex params', async () => {
@@ -49,7 +49,8 @@ describe('client.axios', () => {
                 },
             },
         });
-        expect(result).toBeDefined();
+        expect(result.headers['x-powered-by']).toBe('Express');
+        expect(result.body).toBeDefined();
     });
 
     it('supports form data', async () => {
@@ -65,7 +66,7 @@ describe('client.axios', () => {
                 prop: 'valueBody',
             }
         );
-        expect(result).toBeDefined();
+        expect(result.body).toBeDefined();
     });
 
     it('can abort the request', async () => {

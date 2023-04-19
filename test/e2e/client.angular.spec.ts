@@ -20,7 +20,7 @@ describe('client.angular', () => {
     afterAll(async () => {
         await browser.stop();
         await server.stop();
-    });
+    }, 30000);
 
     it('requests token', async () => {
         await browser.exposeFunction('tokenRequest', jest.fn().mockResolvedValue('MY_TOKEN'));
@@ -33,7 +33,7 @@ describe('client.angular', () => {
                 SimpleService.getCallWithoutParametersAndResponse().subscribe(resolve);
             });
         });
-        expect(result.headers.authorization).toBe('Bearer MY_TOKEN');
+        expect(result.body.headers.authorization).toBe('Bearer MY_TOKEN');
     });
 
     it('uses credentials', async () => {
@@ -46,7 +46,7 @@ describe('client.angular', () => {
                 SimpleService.getCallWithoutParametersAndResponse().subscribe(resolve);
             });
         });
-        expect(result.headers.authorization).toBe('Basic dXNlcm5hbWU6cGFzc3dvcmQ=');
+        expect(result.body.headers.authorization).toBe('Basic dXNlcm5hbWU6cGFzc3dvcmQ=');
     });
 
     it('supports complex params', async () => {
@@ -62,7 +62,8 @@ describe('client.angular', () => {
                 }).subscribe(resolve);
             });
         });
-        expect(result).toBeDefined();
+        expect(result.headers['x-powered-by']).toBe('Express');
+        expect(result.body).toBeDefined();
     });
 
     it('support form data', async () => {
@@ -81,7 +82,7 @@ describe('client.angular', () => {
                 ).subscribe(resolve);
             });
         });
-        expect(result).toBeDefined();
+        expect(result.body).toBeDefined();
     });
 
     it('should throw known error (500)', async () => {

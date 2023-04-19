@@ -63,7 +63,7 @@ const sendRequest = async <T>(
 		const axiosError = error as AxiosError<T>;
 		if (axiosError.response) {
 			return axiosError.response;
-		}
+        }
 		throw error;
 	}
 };

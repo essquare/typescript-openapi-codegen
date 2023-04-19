@@ -13,7 +13,7 @@ describe('v2.axios', () => {
 
     afterAll(async () => {
         await server.stop();
-    });
+    }, 30000);
 
     it('requests token', async () => {
         const { OpenAPI, SimpleService } = require('./generated/v2/axios/index.js');
@@ -21,7 +21,7 @@ describe('v2.axios', () => {
         OpenAPI.TOKEN = tokenRequest;
         const result = await SimpleService.getCallWithoutParametersAndResponse();
         expect(tokenRequest.mock.calls.length).toBe(1);
-        expect(result.headers.authorization).toBe('Bearer MY_TOKEN');
+        expect(result.body.headers.authorization).toBe('Bearer MY_TOKEN');
     });
 
     it('supports complex params', async () => {
@@ -33,6 +33,7 @@ describe('v2.axios', () => {
                 },
             },
         });
-        expect(result).toBeDefined();
+        expect(result.headers['x-powered-by']).toBe('Express');
+        expect(result.body).toBeDefined();
     });
 });

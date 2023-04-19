@@ -1,4 +1,4 @@
-import puppeteer, { Browser, EvaluateFn, Page } from 'puppeteer';
+import puppeteer, { Browser, Page } from 'puppeteer';
 
 let _browser: Browser;
 let _page: Page;
@@ -9,6 +9,7 @@ const start = async () => {
     // javascript modules (see server.js for more info)
     _browser = await puppeteer.launch({
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        headless: 'new',
     });
     _page = await _browser.newPage();
     // _page.on('console', msg => console.log(msg.text()));
@@ -22,7 +23,7 @@ const stop = async () => {
     await _browser.close();
 };
 
-const evaluate = async (fn: EvaluateFn) => {
+const evaluate = async fn => {
     return await _page.evaluate(fn);
 };
 

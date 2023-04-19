@@ -9,7 +9,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import type { Observable } from 'rxjs';
 {{/if}}
-
+import type { ApiResult } from '../core/ApiResult';
 {{/equals}}
 {{#if imports}}
 {{#each imports}}
@@ -19,6 +19,7 @@ import type { {{{this}}} } from '../models/{{{this}}}';
 {{/if}}
 {{#notEquals @root.httpClient 'angular'}}
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 {{/notEquals}}
 {{#if @root.exportClient}}
 {{#equals @root.httpClient 'angular'}}
@@ -70,18 +71,18 @@ export class {{{name}}}{{{@root.postfix}}} {
 	 */
 	{{#if @root.exportClient}}
 	{{#equals @root.httpClient 'angular'}}
-	public {{{name}}}({{>parameters}}): Observable<{{>result}}> {
+	public {{{name}}}({{>parameters}}): Observable<ApiResult<{{>result}}>> {
 		return this.httpRequest.request({
 	{{else}}
-	public {{{name}}}({{>parameters}}): CancelablePromise<{{>result}}> {
+	public {{{name}}}({{>parameters}}): CancelablePromise<ApiResult<{{>result}}>> {
 		return this.httpRequest.request({
 	{{/equals}}
 	{{else}}
 	{{#equals @root.httpClient 'angular'}}
-	public {{{name}}}({{>parameters}}): Observable<{{>result}}> {
+	public {{{name}}}({{>parameters}}): Observable<ApiResult<{{>result}}>> {
 		return __request(OpenAPI, this.http, {
 	{{else}}
-	public static {{{name}}}({{>parameters}}): CancelablePromise<{{>result}}> {
+	public static {{{name}}}({{>parameters}}): CancelablePromise<ApiResult<{{>result}}>> {
 		return __request(OpenAPI, {
 	{{/equals}}
 	{{/if}}
