@@ -1,9 +1,12 @@
-const getResponseHeader = (xhr: XMLHttpRequest, responseHeader?: string): string | undefined => {
-	if (responseHeader) {
-		const content = xhr.getResponseHeader(responseHeader);
-		if (isString(content)) {
-			return content;
-		}
-	}
-	return undefined;
+const getResponseHeader = (xhr: XMLHttpRequest) => {
+    // Create a map of header names to values
+    const headerMap:Record<string, string> = {};
+    xhr.getAllResponseHeaders()
+      .trim()
+      .split(/[\r\n]+/)
+      .map(value => value.split(/: /))
+      .forEach(keyValue => {
+          headerMap[keyValue[0].trim()] = keyValue[1].trim();
+      });        
+	return headerMap;
 };

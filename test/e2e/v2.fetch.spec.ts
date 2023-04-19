@@ -19,7 +19,7 @@ describe('v2.fetch', () => {
     afterAll(async () => {
         await browser.stop();
         await server.stop();
-    });
+    }, 30000);
 
     it('requests token', async () => {
         await browser.exposeFunction('tokenRequest', jest.fn().mockResolvedValue('MY_TOKEN'));
@@ -28,7 +28,7 @@ describe('v2.fetch', () => {
             OpenAPI.TOKEN = (window as any).tokenRequest;
             return await SimpleService.getCallWithoutParametersAndResponse();
         });
-        expect(result.headers.authorization).toBe('Bearer MY_TOKEN');
+        expect(result.body.headers.authorization).toBe('Bearer MY_TOKEN');
     });
 
     it('supports complex params', async () => {
@@ -42,6 +42,7 @@ describe('v2.fetch', () => {
                 },
             });
         });
-        expect(result).toBeDefined();
+        expect(result.headers['x-powered-by']).toBe('Express');
+        expect(result.body).toBeDefined();
     });
 });

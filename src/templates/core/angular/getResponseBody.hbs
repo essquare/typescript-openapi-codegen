@@ -1,6 +1,3 @@
-const getResponseBody = <T>(response: HttpResponse<T>): T | undefined => {
-	if (response.status !== 204 && response.body !== null) {
-		return response.body;
-	}
-	return undefined;
+const getResponseBody = <T>(response: HttpResponse<T>): T => {
+		return response.body as T;
 };

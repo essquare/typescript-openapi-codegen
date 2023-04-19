@@ -1,20 +1,21 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`v2 should generate: ./test/generated/v2/core/ApiError.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/core/ApiError.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiRequestOptions } from './ApiRequestOptions';
 import type { ApiResult } from './ApiResult';
 
-export class ApiError extends Error {
+export class ApiError<T> extends Error {
     public readonly url: string;
     public readonly status: number;
     public readonly statusText: string;
     public readonly body: any;
+    public readonly headers: any;
     public readonly request: ApiRequestOptions;
 
-    constructor(request: ApiRequestOptions, response: ApiResult, message: string) {
+    constructor(request: ApiRequestOptions, response: ApiResult<T>, message: string) {
         super(message);
 
         this.name = 'ApiError';
@@ -22,13 +23,14 @@ export class ApiError extends Error {
         this.status = response.status;
         this.statusText = response.statusText;
         this.body = response.body;
+        this.headers = response.headers;
         this.request = request;
     }
 }
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/core/ApiRequestOptions.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/core/ApiRequestOptions.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -48,21 +50,22 @@ export type ApiRequestOptions = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/core/ApiResult.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/core/ApiResult.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ApiResult = {
+export type ApiResult<T> = {
     readonly url: string;
     readonly ok: boolean;
     readonly status: number;
     readonly statusText: string;
-    readonly body: any;
+    readonly body: T;
+    readonly headers?: any;
 };
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/core/CancelablePromise.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/core/CancelablePromise.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -194,7 +197,7 @@ export class CancelablePromise<T> implements Promise<T> {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/core/OpenAPI.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/core/OpenAPI.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -229,7 +232,7 @@ export const OpenAPI: OpenAPIConfig = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/core/request.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/core/request.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -374,7 +377,7 @@ const getFormData = (options: ApiRequestOptions) => {
             } else if (isBlob(value)) {
                 formData.append(key, value);
             } else {
-                formData.append(key, new Blob([JSON.stringify(value)], {\\"type\\":\\"application/json\\"}));
+                formData.append(key, new Blob([JSON.stringify(value)], {"type":"application/json"}));
             }
         };
 
@@ -464,7 +467,7 @@ export const sendRequest = async (
     formData: FormData | undefined,
     headers: Headers,
     onCancel: OnCancel
-): Promise<Response> => {
+) => {
     const controller = new AbortController();
 
     const request: RequestInit = {
@@ -483,14 +486,14 @@ export const sendRequest = async (
     return await fetch(url, request);
 };
 
-const getResponseHeader = (response: Response, responseHeader?: string): string | undefined => {
-    if (responseHeader) {
-        const content = response.headers.get(responseHeader);
-        if (isString(content)) {
-            return content;
+const getResponseHeader = (response: Response) => {
+    const headerMap:Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+        if(value){
+            headerMap[key] = value;
         }
-    }
-    return undefined;
+    })
+    return headerMap;
 };
 
 const getResponseBody = async (response: Response): Promise<any> => {
@@ -512,7 +515,7 @@ const getResponseBody = async (response: Response): Promise<any> => {
     return undefined;
 };
 
-const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): void => {
+const catchErrorCodes = <T>(options: ApiRequestOptions, result: ApiResult<T>): void => {
     const errors: Record<number, string> = {
         400: 'Bad Request',
         401: 'Unauthorized',
@@ -541,7 +544,7 @@ const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): void =>
  * @returns CancelablePromise<T>
  * @throws ApiError
  */
-export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): CancelablePromise<T> => {
+export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): CancelablePromise<T> | any => {
     return new CancelablePromise(async (resolve, reject, onCancel) => {
         try {
             const url = getUrl(config, options);
@@ -552,19 +555,19 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): C
             if (!onCancel.isCancelled) {
                 const response = await sendRequest(config, options, url, body, formData, headers, onCancel);
                 const responseBody = await getResponseBody(response);
-                const responseHeader = getResponseHeader(response, options.responseHeader);
-
-                const result: ApiResult = {
+                const responseHeader = getResponseHeader(response);
+                const result: ApiResult<T> = {
                     url,
                     ok: response.ok,
                     status: response.status,
                     statusText: response.statusText,
-                    body: responseHeader ?? responseBody,
+                    body: responseBody,
+                    headers: responseHeader,
                 };
 
                 catchErrorCodes(options, result);
 
-                resolve(result.body);
+                resolve(result);
             }
         } catch (error) {
             reject(error);
@@ -574,7 +577,7 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): C
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/index.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/index.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -698,7 +701,7 @@ export { TypesService } from './services/TypesService';
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ArrayWithArray.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ArrayWithArray.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -712,7 +715,7 @@ export type ArrayWithArray = Array<Array<ModelWithString>>;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ArrayWithBooleans.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ArrayWithBooleans.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -724,7 +727,7 @@ export type ArrayWithBooleans = Array<boolean>;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ArrayWithNumbers.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ArrayWithNumbers.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -736,7 +739,7 @@ export type ArrayWithNumbers = Array<number>;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ArrayWithProperties.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ArrayWithProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -751,7 +754,7 @@ export type ArrayWithProperties = Array<{
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ArrayWithReferences.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ArrayWithReferences.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -765,7 +768,7 @@ export type ArrayWithReferences = Array<ModelWithString>;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ArrayWithStrings.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ArrayWithStrings.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -777,7 +780,7 @@ export type ArrayWithStrings = Array<string>;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/CommentWithBackticks.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/CommentWithBackticks.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -789,7 +792,7 @@ export type CommentWithBackticks = number;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/CommentWithBreaks.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/CommentWithBreaks.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -804,7 +807,7 @@ export type CommentWithBreaks = number;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/CommentWithExpressionPlaceholders.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/CommentWithExpressionPlaceholders.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -816,19 +819,19 @@ export type CommentWithExpressionPlaceholders = number;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/CommentWithQuotes.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/CommentWithQuotes.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 
 /**
- * Testing quotes in string: 'single quote''' and \\"double quotes\\"\\"\\" should work
+ * Testing quotes in string: 'single quote''' and "double quotes""" should work
  */
 export type CommentWithQuotes = number;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/CommentWithReservedCharacters.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/CommentWithReservedCharacters.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -840,19 +843,19 @@ export type CommentWithReservedCharacters = number;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/CommentWithSlashes.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/CommentWithSlashes.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 
 /**
- * Testing slashes in string: \\\\backwards\\\\\\\\\\\\ and /forwards/// should work
+ * Testing slashes in string: \\backwards\\\\\\ and /forwards/// should work
  */
 export type CommentWithSlashes = number;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/Date.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/Date.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -864,7 +867,7 @@ export type Date = string;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/DictionaryWithArray.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/DictionaryWithArray.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -878,7 +881,7 @@ export type DictionaryWithArray = Record<string, Array<ModelWithString>>;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/DictionaryWithDictionary.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/DictionaryWithDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -890,7 +893,7 @@ export type DictionaryWithDictionary = Record<string, Record<string, string>>;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/DictionaryWithProperties.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/DictionaryWithProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -905,7 +908,7 @@ export type DictionaryWithProperties = Record<string, {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/DictionaryWithReference.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/DictionaryWithReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -919,7 +922,7 @@ export type DictionaryWithReference = Record<string, ModelWithString>;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/DictionaryWithString.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/DictionaryWithString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -931,7 +934,7 @@ export type DictionaryWithString = Record<string, string>;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/EnumFromDescription.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/EnumFromDescription.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -943,7 +946,7 @@ export type EnumFromDescription = number;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/EnumWithExtensions.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/EnumWithExtensions.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -968,7 +971,7 @@ export enum EnumWithExtensions {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/EnumWithNumbers.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/EnumWithNumbers.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -996,7 +999,7 @@ export enum EnumWithNumbers {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/EnumWithStrings.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/EnumWithStrings.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1008,13 +1011,13 @@ export enum EnumWithStrings {
     SUCCESS = 'Success',
     WARNING = 'Warning',
     ERROR = 'Error',
-    _SINGLE_QUOTE_ = '\\\\'Single Quote\\\\'',
-    _DOUBLE_QUOTES_ = '\\"Double Quotes\\"',
+    _SINGLE_QUOTE_ = '\\'Single Quote\\'',
+    _DOUBLE_QUOTES_ = '"Double Quotes"',
 }
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelThatExtends.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelThatExtends.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1032,7 +1035,7 @@ export type ModelThatExtends = (ModelWithString & {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelThatExtendsExtends.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelThatExtendsExtends.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1051,7 +1054,7 @@ export type ModelThatExtendsExtends = (ModelWithString & ModelThatExtends & {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithArray.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithArray.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1070,7 +1073,7 @@ export type ModelWithArray = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithBoolean.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithBoolean.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1088,7 +1091,7 @@ export type ModelWithBoolean = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithCircularReference.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithCircularReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1103,7 +1106,7 @@ export type ModelWithCircularReference = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithDictionary.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1118,7 +1121,7 @@ export type ModelWithDictionary = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithDuplicateImports.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithDuplicateImports.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1137,7 +1140,7 @@ export type ModelWithDuplicateImports = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithDuplicateProperties.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithDuplicateProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1154,7 +1157,7 @@ export type ModelWithDuplicateProperties = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithEnum.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithEnum.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1206,7 +1209,7 @@ export namespace ModelWithEnum {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithEnumFromDescription.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithEnumFromDescription.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1224,7 +1227,7 @@ export type ModelWithEnumFromDescription = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithInteger.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithInteger.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1242,7 +1245,7 @@ export type ModelWithInteger = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithNestedEnums.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithNestedEnums.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1260,7 +1263,7 @@ export type ModelWithNestedEnums = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithNestedProperties.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithNestedProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1279,7 +1282,7 @@ export type ModelWithNestedProperties = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithNullableString.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithNullableString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1301,7 +1304,7 @@ export type ModelWithNullableString = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithOrderedProperties.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithOrderedProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1318,7 +1321,7 @@ export type ModelWithOrderedProperties = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithPattern.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithPattern.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1338,7 +1341,7 @@ export type ModelWithPattern = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithProperties.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1365,7 +1368,7 @@ export type ModelWithProperties = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithReference.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1382,7 +1385,7 @@ export type ModelWithReference = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/ModelWithString.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/ModelWithString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1400,7 +1403,7 @@ export type ModelWithString = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/SimpleBoolean.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/SimpleBoolean.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1412,7 +1415,7 @@ export type SimpleBoolean = boolean;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/SimpleFile.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/SimpleFile.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1424,7 +1427,7 @@ export type SimpleFile = Blob;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/SimpleInteger.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/SimpleInteger.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1436,7 +1439,7 @@ export type SimpleInteger = number;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/SimpleReference.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/SimpleReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1450,7 +1453,7 @@ export type SimpleReference = ModelWithString;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/SimpleString.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/SimpleString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1462,7 +1465,7 @@ export type SimpleString = string;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/models/SimpleStringWithPattern.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/models/SimpleStringWithPattern.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1474,7 +1477,7 @@ export type SimpleStringWithPattern = string;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ArrayWithArray.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ArrayWithArray.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1490,7 +1493,7 @@ export const $ArrayWithArray = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ArrayWithBooleans.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ArrayWithBooleans.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1503,7 +1506,7 @@ export const $ArrayWithBooleans = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ArrayWithNumbers.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ArrayWithNumbers.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1516,7 +1519,7 @@ export const $ArrayWithNumbers = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ArrayWithProperties.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ArrayWithProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1536,7 +1539,7 @@ export const $ArrayWithProperties = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ArrayWithReferences.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ArrayWithReferences.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1549,7 +1552,7 @@ export const $ArrayWithReferences = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ArrayWithStrings.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ArrayWithStrings.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1562,18 +1565,18 @@ export const $ArrayWithStrings = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$CommentWithBackticks.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$CommentWithBackticks.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 export const $CommentWithBackticks = {
     type: 'number',
-    description: \`Testing backticks in string: \\\\\`backticks\\\\\` and \\\\\`\\\\\`\\\\\`multiple backticks\\\\\`\\\\\`\\\\\` should work\`,
+    description: \`Testing backticks in string: \\\`backticks\\\` and \\\`\\\`\\\`multiple backticks\\\`\\\`\\\` should work\`,
 } as const;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$CommentWithBreaks.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$CommentWithBreaks.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1587,29 +1590,29 @@ export const $CommentWithBreaks = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$CommentWithExpressionPlaceholders.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$CommentWithExpressionPlaceholders.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 export const $CommentWithExpressionPlaceholders = {
     type: 'number',
-    description: \`Testing expression placeholders in string: \\\\\${expression} should work\`,
+    description: \`Testing expression placeholders in string: \\\${expression} should work\`,
 } as const;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$CommentWithQuotes.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$CommentWithQuotes.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 export const $CommentWithQuotes = {
     type: 'number',
-    description: \`Testing quotes in string: 'single quote''' and \\"double quotes\\"\\"\\" should work\`,
+    description: \`Testing quotes in string: 'single quote''' and "double quotes""" should work\`,
 } as const;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$CommentWithReservedCharacters.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$CommentWithReservedCharacters.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1620,18 +1623,18 @@ export const $CommentWithReservedCharacters = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$CommentWithSlashes.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$CommentWithSlashes.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 export const $CommentWithSlashes = {
     type: 'number',
-    description: \`Testing slashes in string: \\\\\\\\backwards\\\\\\\\\\\\\\\\\\\\\\\\ and /forwards/// should work\`,
+    description: \`Testing slashes in string: \\\\backwards\\\\\\\\\\\\ and /forwards/// should work\`,
 } as const;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$Date.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$Date.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1642,7 +1645,7 @@ export const $Date = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$DictionaryWithArray.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$DictionaryWithArray.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1658,7 +1661,7 @@ export const $DictionaryWithArray = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$DictionaryWithDictionary.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$DictionaryWithDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1674,7 +1677,7 @@ export const $DictionaryWithDictionary = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$DictionaryWithProperties.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$DictionaryWithProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1694,7 +1697,7 @@ export const $DictionaryWithProperties = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$DictionaryWithReference.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$DictionaryWithReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1707,7 +1710,7 @@ export const $DictionaryWithReference = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$DictionaryWithString.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$DictionaryWithString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1720,7 +1723,7 @@ export const $DictionaryWithString = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$EnumFromDescription.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$EnumFromDescription.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1731,7 +1734,7 @@ export const $EnumFromDescription = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$EnumWithExtensions.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$EnumWithExtensions.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1741,7 +1744,7 @@ export const $EnumWithExtensions = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$EnumWithNumbers.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$EnumWithNumbers.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1751,7 +1754,7 @@ export const $EnumWithNumbers = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$EnumWithStrings.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$EnumWithStrings.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1761,7 +1764,7 @@ export const $EnumWithStrings = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelThatExtends.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelThatExtends.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1784,7 +1787,7 @@ export const $ModelThatExtends = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelThatExtendsExtends.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelThatExtendsExtends.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1809,7 +1812,7 @@ export const $ModelThatExtendsExtends = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithArray.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithArray.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1839,7 +1842,7 @@ export const $ModelWithArray = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithBoolean.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithBoolean.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1855,7 +1858,7 @@ export const $ModelWithBoolean = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithCircularReference.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithCircularReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1870,7 +1873,7 @@ export const $ModelWithCircularReference = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithDictionary.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1888,7 +1891,7 @@ export const $ModelWithDictionary = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithDuplicateImports.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithDuplicateImports.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1909,7 +1912,7 @@ export const $ModelWithDuplicateImports = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithDuplicateProperties.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithDuplicateProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1924,7 +1927,7 @@ export const $ModelWithDuplicateProperties = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithEnum.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithEnum.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1946,7 +1949,7 @@ export const $ModelWithEnum = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithEnumFromDescription.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithEnumFromDescription.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1962,7 +1965,7 @@ export const $ModelWithEnumFromDescription = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithInteger.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithInteger.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -1978,7 +1981,7 @@ export const $ModelWithInteger = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithNestedEnums.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithNestedEnums.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2016,7 +2019,7 @@ export const $ModelWithNestedEnums = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithNestedProperties.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithNestedProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2045,7 +2048,7 @@ export const $ModelWithNestedProperties = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithNullableString.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithNullableString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2068,7 +2071,7 @@ export const $ModelWithNullableString = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithOrderedProperties.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithOrderedProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2089,7 +2092,7 @@ export const $ModelWithOrderedProperties = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithPattern.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithPattern.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2118,18 +2121,18 @@ export const $ModelWithPattern = {
         },
         id: {
             type: 'string',
-            pattern: '^\\\\\\\\d{2}-\\\\\\\\d{3}-\\\\\\\\d{4}$',
+            pattern: '^\\\\d{2}-\\\\d{3}-\\\\d{4}$',
         },
         text: {
             type: 'string',
-            pattern: '^\\\\\\\\w+$',
+            pattern: '^\\\\w+$',
         },
     },
 } as const;
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithProperties.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2179,7 +2182,7 @@ export const $ModelWithProperties = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithReference.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2194,7 +2197,7 @@ export const $ModelWithReference = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$ModelWithString.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$ModelWithString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2210,7 +2213,7 @@ export const $ModelWithString = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$SimpleBoolean.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$SimpleBoolean.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2221,7 +2224,7 @@ export const $SimpleBoolean = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$SimpleFile.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$SimpleFile.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2232,7 +2235,7 @@ export const $SimpleFile = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$SimpleInteger.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$SimpleInteger.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2243,7 +2246,7 @@ export const $SimpleInteger = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$SimpleReference.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$SimpleReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2254,7 +2257,7 @@ export const $SimpleReference = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$SimpleString.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$SimpleString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2265,7 +2268,7 @@ export const $SimpleString = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/schemas/$SimpleStringWithPattern.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/schemas/$SimpleStringWithPattern.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2278,11 +2281,12 @@ export const $SimpleStringWithPattern = {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/CollectionFormatService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/CollectionFormatService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2302,7 +2306,7 @@ export class CollectionFormatService {
         parameterArrayTsv: Array<string>,
         parameterArrayPipes: Array<string>,
         parameterArrayMulti: Array<string>,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/collectionFormat',
@@ -2320,13 +2324,14 @@ export class CollectionFormatService {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/ComplexService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/ComplexService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { ModelWithString } from '../models/ModelWithString';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2347,7 +2352,7 @@ export class ComplexService {
             };
         },
         parameterReference: ModelWithString,
-    ): CancelablePromise<Array<ModelWithString>> {
+    ): CancelablePromise<ApiResult<Array<ModelWithString>>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/complex',
@@ -2366,11 +2371,12 @@ export class ComplexService {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/DefaultService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/DefaultService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2379,7 +2385,7 @@ export class DefaultService {
     /**
      * @throws ApiError
      */
-    public static serviceWithEmptyTag(): CancelablePromise<void> {
+    public static serviceWithEmptyTag(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/no-tag',
@@ -2390,13 +2396,14 @@ export class DefaultService {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/DefaultsService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/DefaultsService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { ModelWithString } from '../models/ModelWithString';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2416,9 +2423,9 @@ export class DefaultsService {
         parameterBoolean: boolean = true,
         parameterEnum: 'Success' | 'Warning' | 'Error' = 'Success',
         parameterModel: ModelWithString = {
-            \\"prop\\": \\"Hello World!\\"
+            "prop": "Hello World!"
         },
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/defaults',
@@ -2446,9 +2453,9 @@ export class DefaultsService {
         parameterBoolean: boolean = true,
         parameterEnum: 'Success' | 'Warning' | 'Error' = 'Success',
         parameterModel: ModelWithString = {
-            \\"prop\\": \\"Hello World!\\"
+            "prop": "Hello World!"
         },
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/defaults',
@@ -2482,7 +2489,7 @@ export class DefaultsService {
         parameterStringWithEmptyDefault: string = '',
         parameterStringNullableWithNoDefault?: string | null,
         parameterStringNullableWithDefault: string | null = null,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/api/v{api-version}/defaults',
@@ -2503,11 +2510,12 @@ export class DefaultsService {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/DescriptionsService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/DescriptionsService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2519,9 +2527,9 @@ export class DescriptionsService {
      *
      * Fourth line
      * @param parameterWithBackticks Testing backticks in string: \`backticks\` and \`\`\`multiple backticks\`\`\` should work
-     * @param parameterWithSlashes Testing slashes in string: \\\\backwards\\\\\\\\\\\\ and /forwards/// should work
+     * @param parameterWithSlashes Testing slashes in string: \\backwards\\\\\\ and /forwards/// should work
      * @param parameterWithExpressionPlaceholders Testing expression placeholders in string: \${expression} should work
-     * @param parameterWithQuotes Testing quotes in string: 'single quote''' and \\"double quotes\\"\\"\\" should work
+     * @param parameterWithQuotes Testing quotes in string: 'single quote''' and "double quotes""" should work
      * @param parameterWithReservedCharacters Testing reserved characters in string: * inline * and ** inline ** should work
      * @throws ApiError
      */
@@ -2532,7 +2540,7 @@ export class DescriptionsService {
         parameterWithExpressionPlaceholders?: string,
         parameterWithQuotes?: string,
         parameterWithReservedCharacters?: string,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/descriptions/',
@@ -2551,11 +2559,12 @@ export class DescriptionsService {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/DuplicateService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/DuplicateService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2564,7 +2573,7 @@ export class DuplicateService {
     /**
      * @throws ApiError
      */
-    public static duplicateName(): CancelablePromise<void> {
+    public static duplicateName(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/duplicate',
@@ -2574,7 +2583,7 @@ export class DuplicateService {
     /**
      * @throws ApiError
      */
-    public static duplicateName1(): CancelablePromise<void> {
+    public static duplicateName1(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/duplicate',
@@ -2584,7 +2593,7 @@ export class DuplicateService {
     /**
      * @throws ApiError
      */
-    public static duplicateName2(): CancelablePromise<void> {
+    public static duplicateName2(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/api/v{api-version}/duplicate',
@@ -2594,7 +2603,7 @@ export class DuplicateService {
     /**
      * @throws ApiError
      */
-    public static duplicateName3(): CancelablePromise<void> {
+    public static duplicateName3(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/v{api-version}/duplicate',
@@ -2605,11 +2614,12 @@ export class DuplicateService {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/ErrorService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/ErrorService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2622,7 +2632,7 @@ export class ErrorService {
      */
     public static testErrorCode(
         status: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<ApiResult<any>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/error',
@@ -2642,11 +2652,12 @@ export class ErrorService {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/HeaderService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/HeaderService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2656,7 +2667,7 @@ export class HeaderService {
      * @returns string Successful response
      * @throws ApiError
      */
-    public static callWithResultFromHeader(): CancelablePromise<string> {
+    public static callWithResultFromHeader(): CancelablePromise<ApiResult<string>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/header',
@@ -2672,11 +2683,12 @@ export class HeaderService {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/MultipleTags1Service.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/MultipleTags1Service.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2686,7 +2698,7 @@ export class MultipleTags1Service {
      * @returns void
      * @throws ApiError
      */
-    public static dummyA(): CancelablePromise<void> {
+    public static dummyA(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/multiple-tags/a',
@@ -2697,7 +2709,7 @@ export class MultipleTags1Service {
      * @returns void
      * @throws ApiError
      */
-    public static dummyB(): CancelablePromise<void> {
+    public static dummyB(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/multiple-tags/b',
@@ -2708,11 +2720,12 @@ export class MultipleTags1Service {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/MultipleTags2Service.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/MultipleTags2Service.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2722,7 +2735,7 @@ export class MultipleTags2Service {
      * @returns void
      * @throws ApiError
      */
-    public static dummyA(): CancelablePromise<void> {
+    public static dummyA(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/multiple-tags/a',
@@ -2733,7 +2746,7 @@ export class MultipleTags2Service {
      * @returns void
      * @throws ApiError
      */
-    public static dummyB(): CancelablePromise<void> {
+    public static dummyB(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/multiple-tags/b',
@@ -2744,11 +2757,12 @@ export class MultipleTags2Service {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/MultipleTags3Service.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/MultipleTags3Service.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2758,7 +2772,7 @@ export class MultipleTags3Service {
      * @returns void
      * @throws ApiError
      */
-    public static dummyB(): CancelablePromise<void> {
+    public static dummyB(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/multiple-tags/b',
@@ -2769,11 +2783,12 @@ export class MultipleTags3Service {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/NoContentService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/NoContentService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2783,7 +2798,7 @@ export class NoContentService {
      * @returns void
      * @throws ApiError
      */
-    public static callWithNoContentResponse(): CancelablePromise<void> {
+    public static callWithNoContentResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/no-content',
@@ -2794,11 +2809,12 @@ export class NoContentService {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/ParametersService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/ParametersService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2818,7 +2834,7 @@ export class ParametersService {
         parameterForm: string,
         parameterBody: string,
         parameterPath: string,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/parameters/{parameterPath}',
@@ -2858,7 +2874,7 @@ export class ParametersService {
         parameterPath2?: string,
         parameterPath3?: string,
         _default?: string,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/parameters/{parameter.path.1}/{parameter-path-2}/{PARAMETER-PATH-3}',
@@ -2885,7 +2901,7 @@ export class ParametersService {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/ResponseService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/ResponseService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -2894,6 +2910,7 @@ import type { ModelThatExtendsExtends } from '../models/ModelThatExtendsExtends'
 import type { ModelWithString } from '../models/ModelWithString';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2903,7 +2920,7 @@ export class ResponseService {
      * @returns ModelWithString Message for default response
      * @throws ApiError
      */
-    public static callWithResponse(): CancelablePromise<ModelWithString> {
+    public static callWithResponse(): CancelablePromise<ApiResult<ModelWithString>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/response',
@@ -2914,7 +2931,7 @@ export class ResponseService {
      * @returns ModelWithString Message for default response
      * @throws ApiError
      */
-    public static callWithDuplicateResponses(): CancelablePromise<ModelWithString> {
+    public static callWithDuplicateResponses(): CancelablePromise<ApiResult<ModelWithString>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/response',
@@ -2933,11 +2950,11 @@ export class ResponseService {
      * @returns ModelThatExtendsExtends Message for 202 response
      * @throws ApiError
      */
-    public static callWithResponses(): CancelablePromise<{
+    public static callWithResponses(): CancelablePromise<ApiResult<{
         readonly '@namespace.string'?: string;
         readonly '@namespace.integer'?: number;
         readonly value?: Array<ModelWithString>;
-    } | ModelWithString | ModelThatExtends | ModelThatExtendsExtends> {
+    } | ModelWithString | ModelThatExtends | ModelThatExtendsExtends>> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/api/v{api-version}/response',
@@ -2953,11 +2970,12 @@ export class ResponseService {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/SimpleService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/SimpleService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -2966,7 +2984,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static getCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static getCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/simple',
@@ -2976,7 +2994,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static putCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static putCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/api/v{api-version}/simple',
@@ -2986,7 +3004,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static postCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static postCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/simple',
@@ -2996,7 +3014,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static deleteCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static deleteCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/v{api-version}/simple',
@@ -3006,7 +3024,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static optionsCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static optionsCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'OPTIONS',
             url: '/api/v{api-version}/simple',
@@ -3016,7 +3034,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static headCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static headCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'HEAD',
             url: '/api/v{api-version}/simple',
@@ -3026,7 +3044,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static patchCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static patchCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/api/v{api-version}/simple',
@@ -3037,11 +3055,12 @@ export class SimpleService {
 "
 `;
 
-exports[`v2 should generate: ./test/generated/v2/services/TypesService.ts 1`] = `
+exports[`v2 should generate: test/generated/v2/services/TypesService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -3071,7 +3090,7 @@ export class TypesService {
         parameterBoolean: boolean = true,
         parameterObject: any = null,
         id?: number,
-    ): CancelablePromise<number | string | boolean | any> {
+    ): CancelablePromise<ApiResult<number | string | boolean | any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/types',
@@ -3094,21 +3113,22 @@ export class TypesService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/core/ApiError.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/core/ApiError.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiRequestOptions } from './ApiRequestOptions';
 import type { ApiResult } from './ApiResult';
 
-export class ApiError extends Error {
+export class ApiError<T> extends Error {
     public readonly url: string;
     public readonly status: number;
     public readonly statusText: string;
     public readonly body: any;
+    public readonly headers: any;
     public readonly request: ApiRequestOptions;
 
-    constructor(request: ApiRequestOptions, response: ApiResult, message: string) {
+    constructor(request: ApiRequestOptions, response: ApiResult<T>, message: string) {
         super(message);
 
         this.name = 'ApiError';
@@ -3116,13 +3136,14 @@ export class ApiError extends Error {
         this.status = response.status;
         this.statusText = response.statusText;
         this.body = response.body;
+        this.headers = response.headers;
         this.request = request;
     }
 }
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/core/ApiRequestOptions.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/core/ApiRequestOptions.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3142,21 +3163,22 @@ export type ApiRequestOptions = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/core/ApiResult.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/core/ApiResult.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ApiResult = {
+export type ApiResult<T> = {
     readonly url: string;
     readonly ok: boolean;
     readonly status: number;
     readonly statusText: string;
-    readonly body: any;
+    readonly body: T;
+    readonly headers?: any;
 };
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/core/CancelablePromise.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/core/CancelablePromise.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3288,7 +3310,7 @@ export class CancelablePromise<T> implements Promise<T> {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/core/OpenAPI.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/core/OpenAPI.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3323,7 +3345,7 @@ export const OpenAPI: OpenAPIConfig = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/core/request.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/core/request.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3468,7 +3490,7 @@ const getFormData = (options: ApiRequestOptions) => {
             } else if (isBlob(value)) {
                 formData.append(key, value);
             } else {
-                formData.append(key, new Blob([JSON.stringify(value)], {\\"type\\":\\"application/json\\"}));
+                formData.append(key, new Blob([JSON.stringify(value)], {"type":"application/json"}));
             }
         };
 
@@ -3558,7 +3580,7 @@ export const sendRequest = async (
     formData: FormData | undefined,
     headers: Headers,
     onCancel: OnCancel
-): Promise<Response> => {
+) => {
     const controller = new AbortController();
 
     const request: RequestInit = {
@@ -3577,14 +3599,14 @@ export const sendRequest = async (
     return await fetch(url, request);
 };
 
-const getResponseHeader = (response: Response, responseHeader?: string): string | undefined => {
-    if (responseHeader) {
-        const content = response.headers.get(responseHeader);
-        if (isString(content)) {
-            return content;
+const getResponseHeader = (response: Response) => {
+    const headerMap:Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+        if(value){
+            headerMap[key] = value;
         }
-    }
-    return undefined;
+    })
+    return headerMap;
 };
 
 const getResponseBody = async (response: Response): Promise<any> => {
@@ -3606,7 +3628,7 @@ const getResponseBody = async (response: Response): Promise<any> => {
     return undefined;
 };
 
-const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): void => {
+const catchErrorCodes = <T>(options: ApiRequestOptions, result: ApiResult<T>): void => {
     const errors: Record<number, string> = {
         400: 'Bad Request',
         401: 'Unauthorized',
@@ -3635,7 +3657,7 @@ const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): void =>
  * @returns CancelablePromise<T>
  * @throws ApiError
  */
-export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): CancelablePromise<T> => {
+export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): CancelablePromise<T> | any => {
     return new CancelablePromise(async (resolve, reject, onCancel) => {
         try {
             const url = getUrl(config, options);
@@ -3646,19 +3668,19 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): C
             if (!onCancel.isCancelled) {
                 const response = await sendRequest(config, options, url, body, formData, headers, onCancel);
                 const responseBody = await getResponseBody(response);
-                const responseHeader = getResponseHeader(response, options.responseHeader);
-
-                const result: ApiResult = {
+                const responseHeader = getResponseHeader(response);
+                const result: ApiResult<T> = {
                     url,
                     ok: response.ok,
                     status: response.status,
                     statusText: response.statusText,
-                    body: responseHeader ?? responseBody,
+                    body: responseBody,
+                    headers: responseHeader,
                 };
 
                 catchErrorCodes(options, result);
 
-                resolve(result.body);
+                resolve(result);
             }
         } catch (error) {
             reject(error);
@@ -3668,7 +3690,7 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): C
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/index.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/index.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3832,7 +3854,7 @@ export { UploadService } from './services/UploadService';
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ArrayWithArray.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ArrayWithArray.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3846,7 +3868,7 @@ export type ArrayWithArray = Array<Array<ModelWithString>>;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ArrayWithBooleans.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ArrayWithBooleans.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3858,7 +3880,7 @@ export type ArrayWithBooleans = Array<boolean>;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ArrayWithNumbers.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ArrayWithNumbers.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3870,7 +3892,7 @@ export type ArrayWithNumbers = Array<number>;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ArrayWithProperties.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ArrayWithProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3885,7 +3907,7 @@ export type ArrayWithProperties = Array<{
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ArrayWithReferences.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ArrayWithReferences.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3899,7 +3921,7 @@ export type ArrayWithReferences = Array<ModelWithString>;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ArrayWithStrings.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ArrayWithStrings.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3911,7 +3933,7 @@ export type ArrayWithStrings = Array<string>;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CommentWithBackticks.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CommentWithBackticks.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3923,7 +3945,7 @@ export type CommentWithBackticks = number;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CommentWithBreaks.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CommentWithBreaks.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3938,7 +3960,7 @@ export type CommentWithBreaks = number;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CommentWithExpressionPlaceholders.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CommentWithExpressionPlaceholders.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3950,19 +3972,19 @@ export type CommentWithExpressionPlaceholders = number;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CommentWithQuotes.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CommentWithQuotes.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 
 /**
- * Testing quotes in string: 'single quote''' and \\"double quotes\\"\\"\\" should work
+ * Testing quotes in string: 'single quote''' and "double quotes""" should work
  */
 export type CommentWithQuotes = number;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CommentWithReservedCharacters.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CommentWithReservedCharacters.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -3974,19 +3996,19 @@ export type CommentWithReservedCharacters = number;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CommentWithSlashes.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CommentWithSlashes.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 
 /**
- * Testing slashes in string: \\\\backwards\\\\\\\\\\\\ and /forwards/// should work
+ * Testing slashes in string: \\backwards\\\\\\ and /forwards/// should work
  */
 export type CommentWithSlashes = number;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionBaseModel.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionBaseModel.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4002,7 +4024,7 @@ export type CompositionBaseModel = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionExtendedModel.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionExtendedModel.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4021,7 +4043,7 @@ export type CompositionExtendedModel = (CompositionBaseModel & {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionWithAllOfAndNullable.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionWithAllOfAndNullable.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4042,7 +4064,7 @@ export type CompositionWithAllOfAndNullable = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionWithAnyOf.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionWithAnyOf.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4062,7 +4084,7 @@ export type CompositionWithAnyOf = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionWithAnyOfAndNullable.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionWithAnyOfAndNullable.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4083,7 +4105,7 @@ export type CompositionWithAnyOfAndNullable = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionWithAnyOfAnonymous.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionWithAnyOfAnonymous.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4100,7 +4122,7 @@ export type CompositionWithAnyOfAnonymous = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionWithOneOf.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionWithOneOf.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4120,7 +4142,7 @@ export type CompositionWithOneOf = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionWithOneOfAndComplexArrayDictionary.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionWithOneOfAndComplexArrayDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4135,7 +4157,7 @@ export type CompositionWithOneOfAndComplexArrayDictionary = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionWithOneOfAndNullable.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionWithOneOfAndNullable.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4156,7 +4178,7 @@ export type CompositionWithOneOfAndNullable = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionWithOneOfAndSimpleArrayDictionary.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionWithOneOfAndSimpleArrayDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4171,7 +4193,7 @@ export type CompositionWithOneOfAndSimpleArrayDictionary = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionWithOneOfAndSimpleDictionary.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionWithOneOfAndSimpleDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4186,7 +4208,7 @@ export type CompositionWithOneOfAndSimpleDictionary = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionWithOneOfAnonymous.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionWithOneOfAnonymous.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4203,7 +4225,7 @@ export type CompositionWithOneOfAnonymous = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/CompositionWithOneOfDiscriminator.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/CompositionWithOneOfDiscriminator.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4219,7 +4241,7 @@ export type CompositionWithOneOfDiscriminator = (ModelCircle | ModelSquare);
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/DeprecatedModel.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/DeprecatedModel.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4239,7 +4261,7 @@ export type DeprecatedModel = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/DictionaryWithArray.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/DictionaryWithArray.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4253,7 +4275,7 @@ export type DictionaryWithArray = Record<string, Array<ModelWithString>>;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/DictionaryWithDictionary.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/DictionaryWithDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4265,7 +4287,7 @@ export type DictionaryWithDictionary = Record<string, Record<string, string>>;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/DictionaryWithProperties.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/DictionaryWithProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4280,7 +4302,7 @@ export type DictionaryWithProperties = Record<string, {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/DictionaryWithReference.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/DictionaryWithReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4294,7 +4316,7 @@ export type DictionaryWithReference = Record<string, ModelWithString>;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/DictionaryWithString.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/DictionaryWithString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4306,7 +4328,7 @@ export type DictionaryWithString = Record<string, string>;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/EnumFromDescription.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/EnumFromDescription.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4318,7 +4340,7 @@ export type EnumFromDescription = number;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/EnumWithExtensions.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/EnumWithExtensions.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4343,7 +4365,7 @@ export enum EnumWithExtensions {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/EnumWithNumbers.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/EnumWithNumbers.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4371,7 +4393,7 @@ export enum EnumWithNumbers {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/EnumWithStrings.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/EnumWithStrings.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4383,13 +4405,13 @@ export enum EnumWithStrings {
     SUCCESS = 'Success',
     WARNING = 'Warning',
     ERROR = 'Error',
-    _SINGLE_QUOTE_ = '\\\\'Single Quote\\\\'',
-    _DOUBLE_QUOTES_ = '\\"Double Quotes\\"',
+    _SINGLE_QUOTE_ = '\\'Single Quote\\'',
+    _DOUBLE_QUOTES_ = '"Double Quotes"',
 }
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/File.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/File.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4405,7 +4427,7 @@ export type File = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelCircle.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelCircle.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4421,7 +4443,7 @@ export type ModelCircle = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelSquare.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelSquare.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4437,7 +4459,7 @@ export type ModelSquare = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelThatExtends.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelThatExtends.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4455,7 +4477,7 @@ export type ModelThatExtends = (ModelWithString & {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelThatExtendsExtends.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelThatExtendsExtends.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4474,7 +4496,7 @@ export type ModelThatExtendsExtends = (ModelWithString & ModelThatExtends & {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithArray.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithArray.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4493,7 +4515,7 @@ export type ModelWithArray = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithBoolean.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithBoolean.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4511,7 +4533,7 @@ export type ModelWithBoolean = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithCircularReference.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithCircularReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4526,7 +4548,7 @@ export type ModelWithCircularReference = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithDictionary.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4541,7 +4563,7 @@ export type ModelWithDictionary = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithDuplicateImports.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithDuplicateImports.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4560,7 +4582,7 @@ export type ModelWithDuplicateImports = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithDuplicateProperties.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithDuplicateProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4577,7 +4599,7 @@ export type ModelWithDuplicateProperties = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithEnum.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithEnum.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4629,7 +4651,7 @@ export namespace ModelWithEnum {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithEnumFromDescription.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithEnumFromDescription.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4647,7 +4669,7 @@ export type ModelWithEnumFromDescription = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithInteger.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithInteger.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4665,7 +4687,7 @@ export type ModelWithInteger = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithNestedEnums.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithNestedEnums.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4683,7 +4705,7 @@ export type ModelWithNestedEnums = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithNestedProperties.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithNestedProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4702,7 +4724,7 @@ export type ModelWithNestedProperties = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithNullableString.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithNullableString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4732,7 +4754,7 @@ export type ModelWithNullableString = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithOrderedProperties.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithOrderedProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4749,7 +4771,7 @@ export type ModelWithOrderedProperties = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithPattern.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithPattern.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4769,7 +4791,7 @@ export type ModelWithPattern = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithProperties.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4797,7 +4819,7 @@ export type ModelWithProperties = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithReference.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4814,7 +4836,7 @@ export type ModelWithReference = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/ModelWithString.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/ModelWithString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4832,7 +4854,7 @@ export type ModelWithString = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/Pageable.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/Pageable.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4846,7 +4868,7 @@ export type Pageable = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/SimpleBoolean.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/SimpleBoolean.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4858,7 +4880,7 @@ export type SimpleBoolean = boolean;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/SimpleFile.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/SimpleFile.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4870,7 +4892,7 @@ export type SimpleFile = Blob;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/SimpleInteger.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/SimpleInteger.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4882,7 +4904,7 @@ export type SimpleInteger = number;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/SimpleReference.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/SimpleReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4896,7 +4918,7 @@ export type SimpleReference = ModelWithString;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/SimpleString.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/SimpleString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4908,7 +4930,7 @@ export type SimpleString = string;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/models/SimpleStringWithPattern.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/models/SimpleStringWithPattern.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4920,7 +4942,7 @@ export type SimpleStringWithPattern = string | null;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ArrayWithArray.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ArrayWithArray.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4936,7 +4958,7 @@ export const $ArrayWithArray = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ArrayWithBooleans.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ArrayWithBooleans.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4949,7 +4971,7 @@ export const $ArrayWithBooleans = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ArrayWithNumbers.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ArrayWithNumbers.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4962,7 +4984,7 @@ export const $ArrayWithNumbers = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ArrayWithProperties.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ArrayWithProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4982,7 +5004,7 @@ export const $ArrayWithProperties = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ArrayWithReferences.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ArrayWithReferences.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -4995,7 +5017,7 @@ export const $ArrayWithReferences = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ArrayWithStrings.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ArrayWithStrings.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5008,18 +5030,18 @@ export const $ArrayWithStrings = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CommentWithBackticks.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CommentWithBackticks.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 export const $CommentWithBackticks = {
     type: 'number',
-    description: \`Testing backticks in string: \\\\\`backticks\\\\\` and \\\\\`\\\\\`\\\\\`multiple backticks\\\\\`\\\\\`\\\\\` should work\`,
+    description: \`Testing backticks in string: \\\`backticks\\\` and \\\`\\\`\\\`multiple backticks\\\`\\\`\\\` should work\`,
 } as const;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CommentWithBreaks.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CommentWithBreaks.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5033,29 +5055,29 @@ export const $CommentWithBreaks = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CommentWithExpressionPlaceholders.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CommentWithExpressionPlaceholders.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 export const $CommentWithExpressionPlaceholders = {
     type: 'number',
-    description: \`Testing expression placeholders in string: \\\\\${expression} should work\`,
+    description: \`Testing expression placeholders in string: \\\${expression} should work\`,
 } as const;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CommentWithQuotes.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CommentWithQuotes.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 export const $CommentWithQuotes = {
     type: 'number',
-    description: \`Testing quotes in string: 'single quote''' and \\"double quotes\\"\\"\\" should work\`,
+    description: \`Testing quotes in string: 'single quote''' and "double quotes""" should work\`,
 } as const;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CommentWithReservedCharacters.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CommentWithReservedCharacters.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5066,18 +5088,18 @@ export const $CommentWithReservedCharacters = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CommentWithSlashes.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CommentWithSlashes.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 export const $CommentWithSlashes = {
     type: 'number',
-    description: \`Testing slashes in string: \\\\\\\\backwards\\\\\\\\\\\\\\\\\\\\\\\\ and /forwards/// should work\`,
+    description: \`Testing slashes in string: \\\\backwards\\\\\\\\\\\\ and /forwards/// should work\`,
 } as const;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionBaseModel.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionBaseModel.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5095,7 +5117,7 @@ export const $CompositionBaseModel = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionExtendedModel.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionExtendedModel.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5124,7 +5146,7 @@ export const $CompositionExtendedModel = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionWithAllOfAndNullable.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionWithAllOfAndNullable.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5153,7 +5175,7 @@ export const $CompositionWithAllOfAndNullable = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionWithAnyOf.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionWithAnyOf.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5177,7 +5199,7 @@ export const $CompositionWithAnyOf = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionWithAnyOfAndNullable.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionWithAnyOfAndNullable.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5206,7 +5228,7 @@ export const $CompositionWithAnyOfAndNullable = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionWithAnyOfAnonymous.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionWithAnyOfAnonymous.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5235,7 +5257,7 @@ export const $CompositionWithAnyOfAnonymous = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionWithOneOf.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionWithOneOf.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5259,7 +5281,7 @@ export const $CompositionWithOneOf = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionWithOneOfAndComplexArrayDictionary.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionWithOneOfAndComplexArrayDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5290,7 +5312,7 @@ export const $CompositionWithOneOfAndComplexArrayDictionary = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionWithOneOfAndNullable.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionWithOneOfAndNullable.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5319,7 +5341,7 @@ export const $CompositionWithOneOfAndNullable = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionWithOneOfAndSimpleArrayDictionary.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionWithOneOfAndSimpleArrayDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5345,7 +5367,7 @@ export const $CompositionWithOneOfAndSimpleArrayDictionary = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionWithOneOfAndSimpleDictionary.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionWithOneOfAndSimpleDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5368,7 +5390,7 @@ export const $CompositionWithOneOfAndSimpleDictionary = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionWithOneOfAnonymous.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionWithOneOfAnonymous.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5397,7 +5419,7 @@ export const $CompositionWithOneOfAnonymous = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$CompositionWithOneOfDiscriminator.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$CompositionWithOneOfDiscriminator.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5413,7 +5435,7 @@ export const $CompositionWithOneOfDiscriminator = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$DeprecatedModel.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$DeprecatedModel.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5429,7 +5451,7 @@ export const $DeprecatedModel = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$DictionaryWithArray.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$DictionaryWithArray.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5445,7 +5467,7 @@ export const $DictionaryWithArray = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$DictionaryWithDictionary.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$DictionaryWithDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5461,7 +5483,7 @@ export const $DictionaryWithDictionary = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$DictionaryWithProperties.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$DictionaryWithProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5481,7 +5503,7 @@ export const $DictionaryWithProperties = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$DictionaryWithReference.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$DictionaryWithReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5494,7 +5516,7 @@ export const $DictionaryWithReference = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$DictionaryWithString.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$DictionaryWithString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5507,7 +5529,7 @@ export const $DictionaryWithString = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$EnumFromDescription.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$EnumFromDescription.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5518,7 +5540,7 @@ export const $EnumFromDescription = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$EnumWithExtensions.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$EnumWithExtensions.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5528,7 +5550,7 @@ export const $EnumWithExtensions = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$EnumWithNumbers.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$EnumWithNumbers.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5538,7 +5560,7 @@ export const $EnumWithNumbers = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$EnumWithStrings.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$EnumWithStrings.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5548,7 +5570,7 @@ export const $EnumWithStrings = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$File.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$File.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5585,7 +5607,7 @@ export const $File = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelCircle.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelCircle.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5604,7 +5626,7 @@ export const $ModelCircle = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelSquare.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelSquare.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5623,7 +5645,7 @@ export const $ModelSquare = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelThatExtends.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelThatExtends.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5646,7 +5668,7 @@ export const $ModelThatExtends = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelThatExtendsExtends.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelThatExtendsExtends.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5671,7 +5693,7 @@ export const $ModelThatExtendsExtends = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithArray.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithArray.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5701,7 +5723,7 @@ export const $ModelWithArray = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithBoolean.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithBoolean.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5717,7 +5739,7 @@ export const $ModelWithBoolean = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithCircularReference.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithCircularReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5732,7 +5754,7 @@ export const $ModelWithCircularReference = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithDictionary.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithDictionary.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5750,7 +5772,7 @@ export const $ModelWithDictionary = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithDuplicateImports.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithDuplicateImports.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5771,7 +5793,7 @@ export const $ModelWithDuplicateImports = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithDuplicateProperties.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithDuplicateProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5786,7 +5808,7 @@ export const $ModelWithDuplicateProperties = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithEnum.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithEnum.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5808,7 +5830,7 @@ export const $ModelWithEnum = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithEnumFromDescription.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithEnumFromDescription.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5824,7 +5846,7 @@ export const $ModelWithEnumFromDescription = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithInteger.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithInteger.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5840,7 +5862,7 @@ export const $ModelWithInteger = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithNestedEnums.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithNestedEnums.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5878,7 +5900,7 @@ export const $ModelWithNestedEnums = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithNestedProperties.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithNestedProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5910,7 +5932,7 @@ export const $ModelWithNestedProperties = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithNullableString.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithNullableString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5944,7 +5966,7 @@ export const $ModelWithNullableString = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithOrderedProperties.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithOrderedProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5965,7 +5987,7 @@ export const $ModelWithOrderedProperties = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithPattern.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithPattern.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -5994,18 +6016,18 @@ export const $ModelWithPattern = {
         },
         id: {
             type: 'string',
-            pattern: '^\\\\\\\\d{2}-\\\\\\\\d{3}-\\\\\\\\d{4}$',
+            pattern: '^\\\\d{2}-\\\\d{3}-\\\\d{4}$',
         },
         text: {
             type: 'string',
-            pattern: '^\\\\\\\\w+$',
+            pattern: '^\\\\w+$',
         },
     },
 } as const;
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithProperties.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithProperties.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -6060,7 +6082,7 @@ export const $ModelWithProperties = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithReference.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -6075,7 +6097,7 @@ export const $ModelWithReference = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$ModelWithString.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$ModelWithString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -6091,7 +6113,7 @@ export const $ModelWithString = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$Pageable.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$Pageable.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -6117,7 +6139,7 @@ export const $Pageable = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$SimpleBoolean.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$SimpleBoolean.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -6128,7 +6150,7 @@ export const $SimpleBoolean = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$SimpleFile.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$SimpleFile.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -6139,7 +6161,7 @@ export const $SimpleFile = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$SimpleInteger.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$SimpleInteger.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -6150,7 +6172,7 @@ export const $SimpleInteger = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$SimpleReference.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$SimpleReference.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -6161,7 +6183,7 @@ export const $SimpleReference = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$SimpleString.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$SimpleString.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -6172,7 +6194,7 @@ export const $SimpleString = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/schemas/$SimpleStringWithPattern.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/schemas/$SimpleStringWithPattern.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -6186,11 +6208,12 @@ export const $SimpleStringWithPattern = {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/CollectionFormatService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/CollectionFormatService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6210,7 +6233,7 @@ export class CollectionFormatService {
         parameterArrayTsv: Array<string> | null,
         parameterArrayPipes: Array<string> | null,
         parameterArrayMulti: Array<string> | null,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/collectionFormat',
@@ -6228,7 +6251,7 @@ export class CollectionFormatService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/ComplexService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/ComplexService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -6238,6 +6261,7 @@ import type { ModelWithEnum } from '../models/ModelWithEnum';
 import type { ModelWithString } from '../models/ModelWithString';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6258,7 +6282,7 @@ export class ComplexService {
             };
         },
         parameterReference: ModelWithString,
-    ): CancelablePromise<Array<ModelWithString>> {
+    ): CancelablePromise<ApiResult<Array<ModelWithString>>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/complex',
@@ -6294,7 +6318,7 @@ export class ComplexService {
                 readonly name?: string | null;
             };
         },
-    ): CancelablePromise<ModelWithString> {
+    ): CancelablePromise<ApiResult<ModelWithString>> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/api/v{api-version}/complex/{id}',
@@ -6310,11 +6334,12 @@ export class ComplexService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/DefaultService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/DefaultService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6323,7 +6348,7 @@ export class DefaultService {
     /**
      * @throws ApiError
      */
-    public static serviceWithEmptyTag(): CancelablePromise<void> {
+    public static serviceWithEmptyTag(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/no-tag',
@@ -6334,13 +6359,14 @@ export class DefaultService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/DefaultsService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/DefaultsService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { ModelWithString } from '../models/ModelWithString';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6360,9 +6386,9 @@ export class DefaultsService {
         parameterBoolean: boolean | null = true,
         parameterEnum: 'Success' | 'Warning' | 'Error' = 'Success',
         parameterModel: ModelWithString | null = {
-            \\"prop\\": \\"Hello World!\\"
+            "prop": "Hello World!"
         },
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/defaults',
@@ -6390,9 +6416,9 @@ export class DefaultsService {
         parameterBoolean: boolean = true,
         parameterEnum: 'Success' | 'Warning' | 'Error' = 'Success',
         parameterModel: ModelWithString = {
-            \\"prop\\": \\"Hello World!\\"
+            "prop": "Hello World!"
         },
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/defaults',
@@ -6426,7 +6452,7 @@ export class DefaultsService {
         parameterStringWithEmptyDefault: string = '',
         parameterStringNullableWithNoDefault?: string | null,
         parameterStringNullableWithDefault: string | null = null,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/api/v{api-version}/defaults',
@@ -6447,13 +6473,14 @@ export class DefaultsService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/DeprecatedService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/DeprecatedService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { DeprecatedModel } from '../models/DeprecatedModel';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6466,7 +6493,7 @@ export class DeprecatedService {
      */
     public static deprecatedCall(
         parameter: DeprecatedModel | null,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/parameters/deprecated',
@@ -6480,11 +6507,12 @@ export class DeprecatedService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/DescriptionsService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/DescriptionsService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6496,9 +6524,9 @@ export class DescriptionsService {
      *
      * Fourth line
      * @param parameterWithBackticks Testing backticks in string: \`backticks\` and \`\`\`multiple backticks\`\`\` should work
-     * @param parameterWithSlashes Testing slashes in string: \\\\backwards\\\\\\\\\\\\ and /forwards/// should work
+     * @param parameterWithSlashes Testing slashes in string: \\backwards\\\\\\ and /forwards/// should work
      * @param parameterWithExpressionPlaceholders Testing expression placeholders in string: \${expression} should work
-     * @param parameterWithQuotes Testing quotes in string: 'single quote''' and \\"double quotes\\"\\"\\" should work
+     * @param parameterWithQuotes Testing quotes in string: 'single quote''' and "double quotes""" should work
      * @param parameterWithReservedCharacters Testing reserved characters in string: * inline * and ** inline ** should work
      * @throws ApiError
      */
@@ -6509,7 +6537,7 @@ export class DescriptionsService {
         parameterWithExpressionPlaceholders?: any,
         parameterWithQuotes?: any,
         parameterWithReservedCharacters?: any,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/descriptions/',
@@ -6528,11 +6556,12 @@ export class DescriptionsService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/DuplicateService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/DuplicateService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6541,7 +6570,7 @@ export class DuplicateService {
     /**
      * @throws ApiError
      */
-    public static duplicateName(): CancelablePromise<void> {
+    public static duplicateName(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/duplicate',
@@ -6551,7 +6580,7 @@ export class DuplicateService {
     /**
      * @throws ApiError
      */
-    public static duplicateName1(): CancelablePromise<void> {
+    public static duplicateName1(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/duplicate',
@@ -6561,7 +6590,7 @@ export class DuplicateService {
     /**
      * @throws ApiError
      */
-    public static duplicateName2(): CancelablePromise<void> {
+    public static duplicateName2(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/api/v{api-version}/duplicate',
@@ -6571,7 +6600,7 @@ export class DuplicateService {
     /**
      * @throws ApiError
      */
-    public static duplicateName3(): CancelablePromise<void> {
+    public static duplicateName3(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/v{api-version}/duplicate',
@@ -6582,11 +6611,12 @@ export class DuplicateService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/ErrorService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/ErrorService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6599,7 +6629,7 @@ export class ErrorService {
      */
     public static testErrorCode(
         status: number,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<ApiResult<any>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/error',
@@ -6619,13 +6649,14 @@ export class ErrorService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/FormDataService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/FormDataService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { ModelWithString } from '../models/ModelWithString';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6639,7 +6670,7 @@ export class FormDataService {
     public static postApiFormData(
         parameter?: string,
         formData?: ModelWithString,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/formData/',
@@ -6655,11 +6686,12 @@ export class FormDataService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/HeaderService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/HeaderService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6669,7 +6701,7 @@ export class HeaderService {
      * @returns string Successful response
      * @throws ApiError
      */
-    public static callWithResultFromHeader(): CancelablePromise<string> {
+    public static callWithResultFromHeader(): CancelablePromise<ApiResult<string>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/header',
@@ -6685,13 +6717,14 @@ export class HeaderService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/MultiResponsesService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/MultiResponsesService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { ModelWithString } from '../models/ModelWithString';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6702,7 +6735,7 @@ export class MultiResponsesService {
      * @returns ModelWithString Successful response
      * @throws ApiError
      */
-    public static callWithMultiResponsesResult(): CancelablePromise<Blob | ModelWithString> {
+    public static callWithMultiResponsesResult(): CancelablePromise<ApiResult<Blob | ModelWithString>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/multiResponses',
@@ -6717,13 +6750,14 @@ export class MultiResponsesService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/MultipartService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/MultipartService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { ModelWithString } from '../models/ModelWithString';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6738,7 +6772,7 @@ export class MultipartService {
             content?: Blob;
             data?: ModelWithString | null;
         },
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/multipart',
@@ -6751,13 +6785,13 @@ export class MultipartService {
      * @returns any OK
      * @throws ApiError
      */
-    public static multipartResponse(): CancelablePromise<{
+    public static multipartResponse(): CancelablePromise<ApiResult<{
         file?: Blob;
         metadata?: {
             foo?: string;
             bar?: string;
         };
-    }> {
+    }>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/multipart',
@@ -6768,11 +6802,12 @@ export class MultipartService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/MultipleTags1Service.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/MultipleTags1Service.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6782,7 +6817,7 @@ export class MultipleTags1Service {
      * @returns void
      * @throws ApiError
      */
-    public static dummyA(): CancelablePromise<void> {
+    public static dummyA(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/multiple-tags/a',
@@ -6793,7 +6828,7 @@ export class MultipleTags1Service {
      * @returns void
      * @throws ApiError
      */
-    public static dummyB(): CancelablePromise<void> {
+    public static dummyB(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/multiple-tags/b',
@@ -6804,11 +6839,12 @@ export class MultipleTags1Service {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/MultipleTags2Service.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/MultipleTags2Service.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6818,7 +6854,7 @@ export class MultipleTags2Service {
      * @returns void
      * @throws ApiError
      */
-    public static dummyA(): CancelablePromise<void> {
+    public static dummyA(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/multiple-tags/a',
@@ -6829,7 +6865,7 @@ export class MultipleTags2Service {
      * @returns void
      * @throws ApiError
      */
-    public static dummyB(): CancelablePromise<void> {
+    public static dummyB(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/multiple-tags/b',
@@ -6840,11 +6876,12 @@ export class MultipleTags2Service {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/MultipleTags3Service.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/MultipleTags3Service.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6854,7 +6891,7 @@ export class MultipleTags3Service {
      * @returns void
      * @throws ApiError
      */
-    public static dummyB(): CancelablePromise<void> {
+    public static dummyB(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/multiple-tags/b',
@@ -6865,11 +6902,12 @@ export class MultipleTags3Service {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/NoContentService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/NoContentService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6879,7 +6917,7 @@ export class NoContentService {
      * @returns void
      * @throws ApiError
      */
-    public static callWithNoContentResponse(): CancelablePromise<void> {
+    public static callWithNoContentResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/no-content',
@@ -6890,7 +6928,7 @@ export class NoContentService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/ParametersService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/ParametersService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -6898,6 +6936,7 @@ import type { ModelWithString } from '../models/ModelWithString';
 import type { Pageable } from '../models/Pageable';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -6919,7 +6958,7 @@ export class ParametersService {
         parameterCookie: string | null,
         parameterPath: string | null,
         requestBody: ModelWithString | null,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/parameters/{parameterPath}',
@@ -6965,7 +7004,7 @@ export class ParametersService {
         parameterPath2?: string,
         parameterPath3?: string,
         _default?: string,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/parameters/{parameter.path.1}/{parameter-path-2}/{PARAMETER-PATH-3}',
@@ -7000,7 +7039,7 @@ export class ParametersService {
     public static getCallWithOptionalParam(
         requestBody: ModelWithString,
         parameter?: string,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/parameters/',
@@ -7020,7 +7059,7 @@ export class ParametersService {
     public static postCallWithOptionalParam(
         parameter: Pageable,
         requestBody?: ModelWithString,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/parameters/',
@@ -7036,13 +7075,14 @@ export class ParametersService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/RequestBodyService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/RequestBodyService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { ModelWithString } from '../models/ModelWithString';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -7056,7 +7096,7 @@ export class RequestBodyService {
     public static postApiRequestBody(
         parameter?: string,
         requestBody?: ModelWithString,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/requestBody/',
@@ -7072,7 +7112,7 @@ export class RequestBodyService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/ResponseService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/ResponseService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
@@ -7081,6 +7121,7 @@ import type { ModelThatExtendsExtends } from '../models/ModelThatExtendsExtends'
 import type { ModelWithString } from '../models/ModelWithString';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -7090,7 +7131,7 @@ export class ResponseService {
      * @returns ModelWithString
      * @throws ApiError
      */
-    public static callWithResponse(): CancelablePromise<ModelWithString> {
+    public static callWithResponse(): CancelablePromise<ApiResult<ModelWithString>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/response',
@@ -7101,7 +7142,7 @@ export class ResponseService {
      * @returns ModelWithString Message for default response
      * @throws ApiError
      */
-    public static callWithDuplicateResponses(): CancelablePromise<ModelWithString> {
+    public static callWithDuplicateResponses(): CancelablePromise<ApiResult<ModelWithString>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/response',
@@ -7120,11 +7161,11 @@ export class ResponseService {
      * @returns ModelThatExtendsExtends Message for 202 response
      * @throws ApiError
      */
-    public static callWithResponses(): CancelablePromise<{
+    public static callWithResponses(): CancelablePromise<ApiResult<{
         readonly '@namespace.string'?: string;
         readonly '@namespace.integer'?: number;
         readonly value?: Array<ModelWithString>;
-    } | ModelWithString | ModelThatExtends | ModelThatExtendsExtends> {
+    } | ModelWithString | ModelThatExtends | ModelThatExtendsExtends>> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/api/v{api-version}/response',
@@ -7140,11 +7181,12 @@ export class ResponseService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/SimpleService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/SimpleService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -7153,7 +7195,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static getCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static getCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/simple',
@@ -7163,7 +7205,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static putCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static putCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/api/v{api-version}/simple',
@@ -7173,7 +7215,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static postCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static postCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/simple',
@@ -7183,7 +7225,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static deleteCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static deleteCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/v{api-version}/simple',
@@ -7193,7 +7235,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static optionsCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static optionsCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'OPTIONS',
             url: '/api/v{api-version}/simple',
@@ -7203,7 +7245,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static headCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static headCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'HEAD',
             url: '/api/v{api-version}/simple',
@@ -7213,7 +7255,7 @@ export class SimpleService {
     /**
      * @throws ApiError
      */
-    public static patchCallWithoutParametersAndResponse(): CancelablePromise<void> {
+    public static patchCallWithoutParametersAndResponse(): CancelablePromise<ApiResult<void>> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/api/v{api-version}/simple',
@@ -7224,11 +7266,12 @@ export class SimpleService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/TypesService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/TypesService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -7258,7 +7301,7 @@ export class TypesService {
         parameterBoolean: boolean | null = true,
         parameterObject: any = null,
         id?: number,
-    ): CancelablePromise<number | string | boolean | any> {
+    ): CancelablePromise<ApiResult<number | string | boolean | any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v{api-version}/types',
@@ -7281,11 +7324,12 @@ export class TypesService {
 "
 `;
 
-exports[`v3 should generate: ./test/generated/v3/services/UploadService.ts 1`] = `
+exports[`v3 should generate: test/generated/v3/services/UploadService.ts 1`] = `
 "/* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
 import type { CancelablePromise } from '../core/CancelablePromise';
+import type { ApiResult } from '../core/ApiResult';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
@@ -7298,7 +7342,7 @@ export class UploadService {
      */
     public static uploadFile(
         file: Blob,
-    ): CancelablePromise<boolean> {
+    ): CancelablePromise<ApiResult<boolean>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v{api-version}/upload',

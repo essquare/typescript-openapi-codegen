@@ -6,10 +6,12 @@ import type { Observable } from 'rxjs';
 
 import type { ApiRequestOptions } from './ApiRequestOptions';
 import type { OpenAPIConfig } from './OpenAPI';
+import type { ApiResult } from './ApiResult';
 {{else}}
 import type { ApiRequestOptions } from './ApiRequestOptions';
 import type { CancelablePromise } from './CancelablePromise';
 import type { OpenAPIConfig } from './OpenAPI';
+import type { ApiResult } from './ApiResult';
 {{/equals}}
 
 export abstract class BaseHttpRequest {
@@ -24,8 +26,8 @@ export abstract class BaseHttpRequest {
 	{{/equals}}
 
 	{{#equals @root.httpClient 'angular'}}
-	public abstract request<T>(options: ApiRequestOptions): Observable<T>;
+	public abstract request<T>(options: ApiRequestOptions): Observable<ApiResult<T>>;
 	{{else}}
-	public abstract request<T>(options: ApiRequestOptions): CancelablePromise<T>;
+	public abstract request<T>(options: ApiRequestOptions): CancelablePromise<ApiResult<T>>;
 	{{/equals}}
 }
