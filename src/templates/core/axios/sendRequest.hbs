@@ -38,7 +38,7 @@ const sendRequest = async <T>(
         }
         return textData;
     });
-    if (axios.defaults.transformResponse instanceof Array<AxiosResponseTransformer>) {
+    if (axios.defaults.transformResponse instanceof Array) {
         transformers.push(...axios.defaults.transformResponse);
     } else if (axios.defaults.transformResponse !== undefined) {
         transformers.push(axios.defaults.transformResponse);

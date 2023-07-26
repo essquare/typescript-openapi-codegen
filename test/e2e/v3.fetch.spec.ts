@@ -90,7 +90,7 @@ describe('v3.fetch', () => {
         } catch (e) {
             error = (e as Error).message;
         }
-        expect(error).toContain('CancelError: Request aborted');
+        expect(error).toContain('Request aborted');
     });
 
     it('should throw known error (500)', async () => {
